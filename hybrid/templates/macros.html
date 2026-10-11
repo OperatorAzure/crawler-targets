@@ -1,0 +1,7 @@
+{% macro badge(status) %}<span class="gw-badge {{ status|lower }}">{{ status }}</span>{% endmacro %}
+
+{% macro avatar(p, size='') %}<span class="gw-avatar {{ size }}" style="--c: {{ p.avatar_color }}">{{ p.initials }}</span>{% endmacro %}
+
+{% macro empty(icon, title, text='') %}
+<div class="gw-empty"><i class="bi bi-{{ icon }}"></i><div class="fw-semibold text-dark">{{ title }}</div>{% if text %}<div class="small">{{ text }}</div>{% endif %}</div>
+{% endmacro %}

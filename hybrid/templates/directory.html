@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% import "macros.html" as m with context %}
+{% block title %}Directory{% endblock %}
+{% block content %}
+<div class="gw-page-head"><div><h1>Directory</h1><p id="dir-count">{{ result.total }} colleague(s){% if result.q %} matching “{{ result.q }}”{% endif %}.</p></div></div>
+<div class="gw-card mb-3">
+  <form class="gw-filters border-0" id="dir-filters" method="get" action="/directory">
+    <input class="form-control form-control-sm" type="search" name="q" value="{{ result.q }}" placeholder="Name, role or team" style="min-width: 260px" autocomplete="off">
+    <select class="form-select form-select-sm" name="department" aria-label="Department">
+      <option value="">All departments</option>
+      {% for d in DEPARTMENTS %}<option {{ 'selected' if result.department == d }}>{{ d }}</option>{% endfor %}
+    </select>
+    <span class="small text-muted ms-auto">Results update as you type</span>
+  </form>
+</div>
+{# Page 1 is rendered by the server; further pages are appended by directory.js as you scroll.
+   Cards are clickable <div>s with a data-href, not <a> links. #}
+<div class="row g-3" id="people" data-pages="{{ result.pages }}">
+  {% for p in result['items'] %}
+  <div class="col-sm-6 col-lg-4 col-xl-3">
+    <div class="gw-card gw-person" data-href="/directory/{{ p.id }}" role="link" tabindex="0">
+      {{ m.avatar(p) }}
+      <div class="fw-semibold">{{ p.full_name }}</div>
+      <div class="small text-muted">{{ p.job_title }}</div>
+      <span class="gw-chip mt-2">{{ p.department }}</span>
+    </div>
+  </div>
+  {% else %}
+  <div class="col-12"><div class="gw-card">{{ m.empty('people', 'Nobody found', 'Try a different name or department.') }}</div></div>
+  {% endfor %}
+</div>
+<div class="text-center text-muted small py-4" id="sentinel">{{ 'Scroll for more' if result.pages > 1 else "That's everyone." }}</div>
+{% endblock %}
+{% block scripts %}<script src="/static/js/directory.js"></script>{% endblock %}

@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% import "macros.html" as m with context %}
+{% block title %}Claims{% endblock %}
+{% block content %}
+{% set sort = request.args.get('sort', 'claim_date') %}{% set order = request.args.get('order', 'desc') %}
+<div class="gw-page-head">
+  <div><h1>Claims</h1><p>{{ result.total_amount }} reimbursed to you in {{ today[:4] }}.</p></div>
+  <a class="btn btn-primary" href="/claims/new"><i class="bi bi-plus-lg"></i> New claim</a>
+</div>
+<div class="gw-card">
+  <form class="gw-filters" method="get" action="/claims">
+    <select class="form-select form-select-sm" name="status" aria-label="Status">
+      <option value="">All statuses</option>
+      {% for s in CLAIM_STATUSES %}<option {{ 'selected' if request.args.get('status') == s }}>{{ s }}</option>{% endfor %}
+    </select>
+    <select class="form-select form-select-sm" name="category" aria-label="Category">
+      <option value="">All categories</option>
+      {% for c in CLAIM_CATEGORIES %}<option {{ 'selected' if request.args.get('category') == c }}>{{ c }}</option>{% endfor %}
+    </select>
+    <input type="hidden" name="sort" value="{{ sort }}"><input type="hidden" name="order" value="{{ order }}">
+    <button class="btn btn-sm btn-outline-primary">Apply filters</button>
+    {% if request.args.get('status') or request.args.get('category') %}<a class="small" href="/claims">Clear</a>{% endif %}
+  </form>
+  {% if result['items'] %}
+  <div class="table-responsive"><table class="table gw-table">
+    <thead><tr>
+      <th>#</th><th>Category</th><th>Description</th>
+      {{ m.sort_th('Expense date', 'claim_date', sort, order) }}
+      {{ m.sort_th('Amount', 'amount', sort, order, 'text-end') }}
+      <th>Receipt</th>
+      {{ m.sort_th('Status', 'status', sort, order) }}
+    </tr></thead>
+    <tbody>
+    {% for c in result['items'] %}
+    <tr>
+      <td class="text-muted">{{ c.id }}</td>
+      <td><a class="fw-semibold" href="/claims/{{ c.id }}">{{ c.category }}</a><div class="small text-muted">{{ c.subcategory }}</div></td>
+      <td class="text-truncate" style="max-width: 220px">{{ c.description }}</td>
+      <td>{{ c.claim_date|fdate }}</td>
+      <td class="text-end fw-semibold">{{ c.amount }}</td>
+      <td>{% if c.receipt_name %}<a href="/claims/{{ c.id }}/receipt" title="{{ c.receipt_name }}"><i class="bi bi-paperclip"></i></a>{% else %}<span class="text-muted">—</span>{% endif %}</td>
+      <td>{{ m.badge(c.status) }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}{{ m.empty('receipt', 'No claims on this page', 'Try another page or clear your filters.') }}{% endif %}
+  {{ m.pagination(result) }}
+</div>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}{{ a.title }}{% endblock %}
+{% block content %}
+<div class="gw-breadcrumb"><a href="/dashboard">Dashboard</a> / Announcements</div>
+<div class="row g-3">
+  <div class="col-lg-8">
+    <article class="gw-card gw-card-body">
+      {% if a.pinned %}<span class="gw-chip mb-2"><i class="bi bi-pin-angle"></i> Pinned</span>{% endif %}
+      <h1 class="h3 fw-bold">{{ a.title }}</h1>
+      <div class="text-muted small mb-4">{{ a.author_name }} · {{ a.author_title }} · {{ a.created_at|fdate }}</div>
+      <p class="lead fs-6">{{ a.summary }}</p>
+      <p>{{ a.body }}</p>
+    </article>
+  </div>
+  <div class="col-lg-4">
+    <div class="gw-card">
+      <div class="gw-card-head"><h2>More announcements</h2></div>
+      {% for o in others if o.id != a.id %}
+      <div class="gw-list-item"><a href="/announcements/{{ o.id }}?ref={{ random_ref() }}">{{ o.title }}</a></div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

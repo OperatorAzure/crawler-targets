@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Leave{% endblock %}
+{% block content %}
+<div class="gw-page-head">
+  <div><h1>Leave</h1><p>Your leave balances and requests for {{ today[:4] }}.</p></div>
+  <a class="btn btn-primary" href="/leave/apply"><i class="bi bi-calendar-plus"></i> Apply for leave</a>
+</div>
+<div class="row g-3 mb-4">
+  {% for b in balances %}
+  <div class="col-md-4"><div class="gw-card gw-card-body">
+    <div class="d-flex justify-content-between mb-2"><span class="fw-semibold">{{ b.type }}</span><span class="text-muted small">{{ b.used }} used</span></div>
+    <div class="gw-progress mb-2"><span style="width: {{ (b.used / b.entitlement * 100)|round|int if b.entitlement else 0 }}%"></span></div>
+    <div class="small text-muted"><strong class="text-dark">{{ b.remaining }}</strong> of {{ b.entitlement }} days left</div>
+  </div></div>
+  {% endfor %}
+</div>
+<div class="gw-card">
+  <div class="gw-filters">
+    <select class="form-select form-select-sm" id="f-status" aria-label="Status">
+      <option value="">All statuses</option>
+      {% for s in LEAVE_STATUSES %}<option>{{ s }}</option>{% endfor %}
+    </select>
+    <select class="form-select form-select-sm" id="f-type" aria-label="Leave type">
+      <option value="">All types</option>
+      {% for t in LEAVE_TYPES %}<option>{{ t }}</option>{% endfor %}
+    </select>
+    <span class="small text-muted ms-auto">Tip: click a row for a quick preview</span>
+  </div>
+  <div id="leave-table"></div>
+</div>
+{% endblock %}
+{% block scripts %}<script src="/static/js/leave.js"></script>{% endblock %}

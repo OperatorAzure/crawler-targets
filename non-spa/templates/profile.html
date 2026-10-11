@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% import "macros.html" as m with context %}
+{% block title %}My profile{% endblock %}
+{% block content %}
+<div class="gw-page-head">
+  <div class="d-flex gap-3 align-items-center">
+    {{ m.avatar(me, 'lg') }}
+    <div><h1>{{ me.full_name }}</h1><p>{{ me.job_title }} · {{ me.department }} · @{{ me.username }}</p></div>
+  </div>
+  <a class="btn btn-outline-primary" href="/directory/{{ me.id }}"><i class="bi bi-eye"></i> View public profile</a>
+</div>
+<div class="gw-card" style="max-width: 860px">
+  <nav class="gw-tabs">
+    <a class="{{ 'active' if tab == 'details' }}" href="/profile">Details</a>
+    <a class="{{ 'active' if tab == 'security' }}" href="/profile/security">Security</a>
+    <a class="{{ 'active' if tab == 'preferences' }}" href="/profile/preferences">Preferences</a>
+  </nav>
+  <form method="post" action="{{ request.path }}">
+    {{ m.csrf() }}
+    <div class="gw-card-body">
+    {% if tab == 'details' %}
+      <div class="row g-3">
+        <div class="col-sm-6"><label class="form-label">Full name</label><input class="form-control" value="{{ me.full_name }}" disabled><div class="form-text">Contact HR to change your legal name.</div></div>
+        <div class="col-sm-6"><label class="form-label">Work email</label><input class="form-control" value="{{ me.email }}" disabled></div>
+        <div class="col-sm-6">
+          <label class="form-label" for="phone">Phone</label>
+          <input class="form-control{{ m.invalid(errors, 'phone') }}" id="phone" name="phone" type="tel" pattern="\+?[0-9 ]{8,16}" value="{{ form.get('phone', me.phone) }}" required>
+          {{ m.field_error(errors, 'phone') }}
+        </div>
+        <div class="col-sm-6">
+          <label class="form-label" for="location">Location</label>
+          <input class="form-control{{ m.invalid(errors, 'location') }}" id="location" name="location" maxlength="60" list="locations" value="{{ form.get('location', me.location) }}">
+          <datalist id="locations"><option>Singapore HQ · Level 12</option><option>Singapore HQ · Level 14</option><option>Jurong East Office</option><option>Remote</option></datalist>
+          {{ m.field_error(errors, 'location') }}
+        </div>
+        <div class="col-12">
+          <label class="form-label" for="bio">About me</label>
+          <textarea class="form-control{{ m.invalid(errors, 'bio') }}" id="bio" name="bio" rows="3" maxlength="300">{{ form.get('bio', me.bio) }}</textarea>
+          {{ m.field_error(errors, 'bio') }}
+        </div>
+      </div>
+    {% elif tab == 'security' %}
+      <div class="row g-3" style="max-width: 420px">
+        {% for name, label, ac in [('current_password', 'Current password', 'current-password'), ('new_password', 'New password', 'new-password'), ('confirm_password', 'Confirm new password', 'new-password')] %}
+        <div class="col-12">
+          <label class="form-label" for="{{ name }}">{{ label }}</label>
+          <input class="form-control{{ m.invalid(errors, name) }}" id="{{ name }}" name="{{ name }}" type="password" autocomplete="{{ ac }}" {{ 'minlength=10' if name != 'current_password' }} required>
+          {{ m.field_error(errors, name) }}
+        </div>
+        {% endfor %}
+        <div class="form-text">At least 10 characters, with letters and numbers.</div>
+      </div>
+    {% else %}
+      <div class="form-check form-switch mb-3">
+        <input class="form-check-input" type="checkbox" role="switch" id="pref_email" name="pref_email_notifications" value="1" {{ 'checked' if user.pref_email_notifications }}>
+        <label class="form-check-label" for="pref_email">Email me when my requests are approved or rejected</label>
+      </div>
+      <div class="form-check form-switch mb-3">
+        <input class="form-check-input" type="checkbox" role="switch" id="pref_digest" name="pref_weekly_digest" value="1" {{ 'checked' if user.pref_weekly_digest }}>
+        <label class="form-check-label" for="pref_digest">Send me a weekly digest of team leave</label>
+      </div>
+      <label class="form-label" for="pref_language">Language</label>
+      <select class="form-select" id="pref_language" name="pref_language" style="max-width: 260px">
+        {% for code, label in LANGUAGES.items() %}<option value="{{ code }}" {{ 'selected' if user.pref_language == code }}>{{ label }}</option>{% endfor %}
+      </select>
+    {% endif %}
+    </div>
+    <div class="gw-modal-foot"><button class="btn btn-primary">{{ 'Change password' if tab == 'security' else 'Save changes' }}</button></div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% import "macros.html" as m with context %}
+{% block title %}{{ target.full_name if target else 'Add user' }}{% endblock %}
+{% block content %}
+<div class="gw-breadcrumb"><a href="/admin/users">Users</a> / {{ target.full_name if target else 'New' }}</div>
+<div class="gw-page-head">
+  <div><h1>{{ target.full_name if target else 'Add user' }}{% if target %} {{ m.badge('Active' if target.active else 'Inactive') }}{% endif %}</h1>
+  <p>{{ '@' ~ target.username if target else 'Create a GoWork account for a new joiner.' }}</p></div>
+  {% if target and target.id != user.id %}
+  <form method="post" action="/admin/users/{{ target.id }}/status">
+    {{ m.csrf() }}
+    <input type="hidden" name="active" value="{{ 0 if target.active else 1 }}">
+    {% if target.active %}<button class="btn btn-outline-danger"><i class="bi bi-person-slash"></i> Deactivate</button>
+    {% else %}<button class="btn btn-outline-success"><i class="bi bi-person-check"></i> Reactivate</button>{% endif %}
+  </form>
+  {% endif %}
+</div>
+<form class="gw-card" method="post" action="{{ request.path }}" style="max-width: 860px">
+  {{ m.csrf() }}
+  <div class="gw-card-body"><div class="row g-3">
+    {% if not target %}
+    <div class="col-sm-6">
+      <label class="form-label" for="username">Username</label>
+      <input class="form-control{{ m.invalid(errors, 'username') }}" id="username" name="username" pattern="[a-z][a-z0-9._]{2,19}" value="{{ form.get('username', '') }}" required>
+      {{ m.field_error(errors, 'username') }}
+    </div>
+    <div class="col-sm-6">
+      <label class="form-label" for="temp_password">Temporary password</label>
+      <input class="form-control{{ m.invalid(errors, 'temp_password') }}" id="temp_password" name="temp_password" type="password" minlength="10" autocomplete="new-password" required>
+      {{ m.field_error(errors, 'temp_password') }}
+    </div>
+    {% endif %}
+    <div class="col-sm-6">
+      <label class="form-label" for="full_name">Full name</label>
+      <input class="form-control{{ m.invalid(errors, 'full_name') }}" id="full_name" name="full_name" maxlength="60" value="{{ form.get('full_name', '') }}" required>
+      {{ m.field_error(errors, 'full_name') }}
+    </div>
+    <div class="col-sm-6">
+      <label class="form-label" for="email">Email</label>
+      <input class="form-control{{ m.invalid(errors, 'email') }}" id="email" name="email" type="email" value="{{ form.get('email', '') }}" required>
+      {{ m.field_error(errors, 'email') }}
+    </div>
+    <div class="col-sm-6">
+      <label class="form-label" for="department">Department</label>
+      <select class="form-select{{ m.invalid(errors, 'department') }}" id="department" name="department" required>
+        <option value="">Choose…</option>
+        {% for d in DEPARTMENTS %}<option {{ 'selected' if form.get('department') == d }}>{{ d }}</option>{% endfor %}
+      </select>
+      {{ m.field_error(errors, 'department') }}
+    </div>
+    <div class="col-sm-6">
+      <label class="form-label" for="job_title">Job title</label>
+      <input class="form-control{{ m.invalid(errors, 'job_title') }}" id="job_title" name="job_title" maxlength="60" value="{{ form.get('job_title', '') }}" required>
+      {{ m.field_error(errors, 'job_title') }}
+    </div>
+    <div class="col-sm-6">
+      <label class="form-label" for="role">Role</label>
+      <select class="form-select{{ m.invalid(errors, 'role') }}" id="role" name="role" required>
+        {% for key, label in ROLES.items() %}<option value="{{ key }}" {{ 'selected' if form.get('role', 'employee') == key }}>{{ label }}</option>{% endfor %}
+      </select>
+      {{ m.field_error(errors, 'role') }}
+    </div>
+    <div class="col-sm-6">
+      <label class="form-label" for="manager_id">Reports to</label>
+      <select class="form-select{{ m.invalid(errors, 'manager_id') }}" id="manager_id" name="manager_id">
+        <option value="">No manager</option>
+        {% for mgr in managers %}<option value="{{ mgr.id }}" {{ 'selected' if form.get('manager_id')|string == mgr.id|string }}>{{ mgr.full_name }} · {{ mgr.department }}</option>{% endfor %}
+      </select>
+      {{ m.field_error(errors, 'manager_id') }}
+    </div>
+  </div></div>
+  <div class="gw-modal-foot">
+    <a class="btn btn-link text-muted" href="/admin/users">Cancel</a>
+    <button class="btn btn-primary">{{ 'Save changes' if target else 'Create user' }}</button>
+  </div>
+</form>
+{% endblock %}

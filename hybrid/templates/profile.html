@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% import "macros.html" as m with context %}
+{% block title %}My profile{% endblock %}
+{% block content %}
+<div class="gw-page-head">
+  <div class="d-flex gap-3 align-items-center">
+    {{ m.avatar(me, 'lg') }}
+    <div><h1>{{ me.full_name }}</h1><p>{{ me.job_title }} · {{ me.department }} · @{{ me.username }}</p></div>
+  </div>
+  <a class="btn btn-outline-primary" href="/directory/{{ me.id }}"><i class="bi bi-eye"></i> View public profile</a>
+</div>
+{# Tabs are buttons; each panel is fetched and rendered the first time it is opened (#details, #security, #preferences) #}
+<div class="gw-card" style="max-width: 860px">
+  <nav class="gw-tabs" role="tablist">
+    <button type="button" role="tab" data-tab="details">Details</button>
+    <button type="button" role="tab" data-tab="security">Security</button>
+    <button type="button" role="tab" data-tab="preferences">Preferences</button>
+  </nav>
+  <div id="tab-panel"></div>
+</div>
+{% endblock %}
+{% block scripts %}<script src="/static/js/profile.js"></script>{% endblock %}

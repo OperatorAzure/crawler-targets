@@ -1,0 +1,31 @@
+{% macro badge(status) %}<span class="gw-badge {{ status|lower }}">{{ status }}</span>{% endmacro %}
+
+{% macro avatar(p, size='') %}<span class="gw-avatar {{ size }}" style="--c: {{ p.avatar_color }}">{{ p.initials }}</span>{% endmacro %}
+
+{% macro invalid(errors, name) %}{{ ' is-invalid' if errors.get(name) }}{% endmacro %}
+
+{% macro field_error(errors, name) %}{% if errors.get(name) %}<div class="invalid-feedback d-block">{{ errors[name] }}</div>{% endif %}{% endmacro %}
+
+{% macro csrf() %}<input type="hidden" name="csrf_token" value="{{ csrf_token }}">{% endmacro %}
+
+{% macro sort_th(label, key, sort, order, cls='') %}
+<th class="{{ cls }}"><a href="{{ url_with(sort=key, order='asc' if sort == key and order == 'desc' else 'desc', page=None) }}">{{ label }}{% if sort == key %} <i class="bi bi-arrow-{{ 'down' if order == 'desc' else 'up' }}"></i>{% endif %}</a></th>
+{% endmacro %}
+
+{# "Next" is always a link, even past the last page: an endless chain of empty pages (crawler trap). #}
+{% macro pagination(result) %}
+<nav class="d-flex justify-content-between align-items-center px-3 py-2 border-top flex-wrap gap-2" aria-label="Pagination">
+  <small class="text-muted">Page {{ result.page }} of {{ result.pages }} · {{ result.total }} total</small>
+  <ul class="pagination pagination-sm mb-0">
+    <li class="page-item {{ 'disabled' if result.page <= 1 }}"><a class="page-link" href="{{ url_with(page=result.page - 1) }}">Previous</a></li>
+    {% for n in range(1, result.pages + 1) %}
+    <li class="page-item {{ 'active' if n == result.page }}"><a class="page-link" href="{{ url_with(page=n) }}">{{ n }}</a></li>
+    {% endfor %}
+    <li class="page-item"><a class="page-link" href="{{ url_with(page=result.page + 1) }}">Next</a></li>
+  </ul>
+</nav>
+{% endmacro %}
+
+{% macro empty(icon, title, text='') %}
+<div class="gw-empty"><i class="bi bi-{{ icon }}"></i><div class="fw-semibold text-dark">{{ title }}</div>{% if text %}<div class="small">{{ text }}</div>{% endif %}</div>
+{% endmacro %}

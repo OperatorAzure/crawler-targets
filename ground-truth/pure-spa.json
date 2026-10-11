@@ -1,0 +1,1497 @@
+{
+  "site": "pure-spa",
+  "base_url": "http://localhost:8003",
+  "api_base_url": "http://localhost:8003/api (nginx proxy) - also reachable directly at http://localhost:8004/api",
+  "architecture": "React 18 + React Router, built with Vite into hashed, code-split bundles and served by nginx. All data comes from a separate FastAPI JSON API.",
+  "auth": {
+    "login": {
+      "url": "/login (client route)",
+      "submits": "fetch POST /api/auth/login",
+      "content_type": "application/json",
+      "fields": [
+        "username",
+        "password"
+      ],
+      "success": "200 {access_token, refresh_token, token_type, expires_in, user}",
+      "failure": "401 {detail}"
+    },
+    "session": {
+      "type": "JWT bearer (HS256)",
+      "access_token_minutes": 10,
+      "refresh_token": "30 min, single use (rotated on every refresh)",
+      "storage": "access token in memory; refresh token in localStorage key 'gw_refresh'",
+      "restore": "On page load the app calls POST /api/auth/refresh"
+    },
+    "unauthenticated": "Client redirect to /login?next=<path>. API: 401 JSON; the client tries one refresh, then goes to /login?expired=1.",
+    "csrf": "None (no cookies; the Authorization header is the credential).",
+    "logout": "'Sign out' button (no href) -> POST /api/auth/logout {refresh_token} -> client goes to /login?signed_out=1",
+    "cors": "API on :8004 allows origin http://localhost:8003"
+  },
+  "accounts": [
+    {
+      "username": "alice",
+      "password": "GoWork@2026",
+      "role": "employee",
+      "user_id": 3,
+      "notes": "Software Engineer, reports to bob. Has 2 pages of leave and claims."
+    },
+    {
+      "username": "bob",
+      "password": "GoWork@2026",
+      "role": "manager",
+      "user_id": 2,
+      "notes": "Engineering Manager with 12 active direct reports."
+    },
+    {
+      "username": "carol",
+      "password": "GoWork@2026",
+      "role": "hr_admin",
+      "user_id": 1,
+      "notes": "HR Director. Sees every pending request and the user admin."
+    },
+    {
+      "username": "li.tan",
+      "password": "GoWork@2026",
+      "role": "manager",
+      "user_id": 4,
+      "notes": "Finance manager."
+    },
+    {
+      "username": "shu.nair",
+      "password": "GoWork@2026",
+      "role": "employee",
+      "user_id": 15,
+      "notes": "Deactivated account - login must fail."
+    }
+  ],
+  "registration": {
+    "page": "/register (linked from the sign-in page as 'Create an account')",
+    "result": "Creates an active *employee* account and signs the new user in immediately (lands on /dashboard with a welcome message).",
+    "invite_codes": [
+      "GW-2026-0001",
+      "GW-2026-0002",
+      "GW-2026-0003",
+      "GW-2026-0004",
+      "GW-2026-0005",
+      "GW-2026-0006",
+      "GW-2026-0007",
+      "GW-2026-0008",
+      "GW-2026-0009",
+      "GW-2026-0010"
+    ],
+    "notes": "Registered accounts disappear when the containers restart. Signed-in users opening /register are sent to /dashboard."
+  },
+  "seed": {
+    "users": 40,
+    "active_users": 38,
+    "announcements": 6,
+    "notes": "All seeded users share the password GoWork@2026. Leave/claim counts vary slightly with today's date."
+  },
+  "pages": [
+    {
+      "path": "/",
+      "roles": [
+        "anonymous"
+      ],
+      "auth_required": false,
+      "query_params": [],
+      "content": "client redirect",
+      "notes": "",
+      "http": "nginx always answers 200 with index.html; the route is rendered in the browser"
+    },
+    {
+      "path": "/login",
+      "roles": [
+        "anonymous"
+      ],
+      "auth_required": false,
+      "query_params": [
+        "next",
+        "expired",
+        "signed_out"
+      ],
+      "content": "html",
+      "notes": "",
+      "http": "nginx always answers 200 with index.html; the route is rendered in the browser"
+    },
+    {
+      "path": "/register",
+      "roles": [
+        "anonymous"
+      ],
+      "auth_required": false,
+      "query_params": [],
+      "content": "html",
+      "notes": "Signed-in users are redirected to /dashboard.",
+      "http": "nginx always answers 200 with index.html; the route is rendered in the browser"
+    },
+    {
+      "path": "/terms",
+      "roles": [
+        "anonymous"
+      ],
+      "auth_required": false,
+      "query_params": [],
+      "content": "html",
+      "notes": "",
+      "fragments": [
+        "use",
+        "accounts",
+        "data",
+        "retention",
+        "contact"
+      ],
+      "http": "nginx always answers 200 with index.html; the route is rendered in the browser"
+    },
+    {
+      "path": "/help",
+      "roles": [
+        "anonymous"
+      ],
+      "auth_required": false,
+      "query_params": [
+        "session_ref"
+      ],
+      "content": "html",
+      "notes": "",
+      "fragments": [
+        "leave",
+        "claims",
+        "password",
+        "approvals",
+        "privacy"
+      ],
+      "http": "nginx always answers 200 with index.html; the route is rendered in the browser"
+    },
+    {
+      "path": "/dashboard",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "auth_required": true,
+      "query_params": [],
+      "content": "html",
+      "notes": "",
+      "http": "nginx always answers 200 with index.html; the route is rendered in the browser"
+    },
+    {
+      "path": "/announcements/{id}",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "auth_required": true,
+      "query_params": [
+        "ref"
+      ],
+      "content": "html",
+      "notes": "",
+      "ids": "1-6",
+      "http": "nginx always answers 200 with index.html; the route is rendered in the browser"
+    },
+    {
+      "path": "/leave",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "auth_required": true,
+      "query_params": [
+        "status",
+        "type",
+        "sort",
+        "order",
+        "page"
+      ],
+      "content": "html",
+      "notes": "",
+      "http": "nginx always answers 200 with index.html; the route is rendered in the browser"
+    },
+    {
+      "path": "/leave/apply",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "auth_required": true,
+      "query_params": [],
+      "content": "html",
+      "notes": "",
+      "http": "nginx always answers 200 with index.html; the route is rendered in the browser"
+    },
+    {
+      "path": "/leave/{id}",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "auth_required": true,
+      "query_params": [],
+      "content": "html",
+      "notes": "Only linked from the quick-view modal, dashboard and approvals.",
+      "http": "nginx always answers 200 with index.html; the route is rendered in the browser"
+    },
+    {
+      "path": "/claims",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "auth_required": true,
+      "query_params": [
+        "status",
+        "category",
+        "sort",
+        "order",
+        "page"
+      ],
+      "content": "html",
+      "notes": "",
+      "http": "nginx always answers 200 with index.html; the route is rendered in the browser"
+    },
+    {
+      "path": "/claims/new",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "auth_required": true,
+      "query_params": [],
+      "content": "html",
+      "notes": "",
+      "http": "nginx always answers 200 with index.html; the route is rendered in the browser"
+    },
+    {
+      "path": "/claims/{id}",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "auth_required": true,
+      "query_params": [],
+      "content": "html",
+      "notes": "",
+      "http": "nginx always answers 200 with index.html; the route is rendered in the browser"
+    },
+    {
+      "path": "/directory",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "auth_required": true,
+      "query_params": [
+        "q",
+        "department"
+      ],
+      "content": "html",
+      "notes": "",
+      "http": "nginx always answers 200 with index.html; the route is rendered in the browser"
+    },
+    {
+      "path": "/directory/{id}",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "auth_required": true,
+      "query_params": [],
+      "content": "html",
+      "notes": "Directory cards navigate by JS click only; also linked from calendar, approvals and profiles.",
+      "http": "nginx always answers 200 with index.html; the route is rendered in the browser"
+    },
+    {
+      "path": "/calendar",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "auth_required": true,
+      "query_params": [
+        "month"
+      ],
+      "content": "html",
+      "notes": "",
+      "http": "nginx always answers 200 with index.html; the route is rendered in the browser"
+    },
+    {
+      "path": "/profile",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "auth_required": true,
+      "query_params": [],
+      "content": "html",
+      "notes": "",
+      "http": "nginx always answers 200 with index.html; the route is rendered in the browser"
+    },
+    {
+      "path": "/profile/security",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "auth_required": true,
+      "query_params": [],
+      "content": "html",
+      "notes": "",
+      "http": "nginx always answers 200 with index.html; the route is rendered in the browser"
+    },
+    {
+      "path": "/profile/preferences",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "auth_required": true,
+      "query_params": [],
+      "content": "html",
+      "notes": "",
+      "http": "nginx always answers 200 with index.html; the route is rendered in the browser"
+    },
+    {
+      "path": "/admin/approvals",
+      "roles": [
+        "manager",
+        "hr_admin"
+      ],
+      "auth_required": true,
+      "query_params": [],
+      "content": "html",
+      "notes": "",
+      "http": "nginx always answers 200 with index.html; the route is rendered in the browser"
+    },
+    {
+      "path": "/admin/users",
+      "roles": [
+        "hr_admin"
+      ],
+      "auth_required": true,
+      "query_params": [
+        "q",
+        "role",
+        "status",
+        "page"
+      ],
+      "content": "html",
+      "notes": "",
+      "http": "nginx always answers 200 with index.html; the route is rendered in the browser"
+    },
+    {
+      "path": "/admin/users/new",
+      "roles": [
+        "hr_admin"
+      ],
+      "auth_required": true,
+      "query_params": [],
+      "content": "html",
+      "notes": "",
+      "http": "nginx always answers 200 with index.html; the route is rendered in the browser"
+    },
+    {
+      "path": "/admin/users/{id}",
+      "roles": [
+        "hr_admin"
+      ],
+      "auth_required": true,
+      "query_params": [],
+      "content": "html",
+      "notes": "",
+      "http": "nginx always answers 200 with index.html; the route is rendered in the browser"
+    },
+    {
+      "path": "/forbidden",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "auth_required": true,
+      "query_params": [],
+      "content": "html",
+      "notes": "Where the client sends users who open a page their role can't use.",
+      "http": "nginx always answers 200 with index.html; the route is rendered in the browser"
+    }
+  ],
+  "api_endpoints": [
+    {
+      "method": "POST",
+      "path": "/api/auth/login",
+      "roles": [
+        "anonymous"
+      ],
+      "notes": ""
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/register",
+      "roles": [
+        "anonymous"
+      ],
+      "notes": "",
+      "body": "registration form (JSON)",
+      "status": 201
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/username-available",
+      "roles": [
+        "anonymous"
+      ],
+      "notes": "Live check used while typing; returns {username, available, message}.",
+      "query": [
+        "username"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/register/managers",
+      "roles": [
+        "anonymous"
+      ],
+      "notes": "Options for 'Reports to'; unknown department -> empty list.",
+      "query": [
+        "department"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/refresh",
+      "roles": [
+        "anonymous"
+      ],
+      "notes": "",
+      "body": "{\"refresh_token\"}"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/logout",
+      "roles": [
+        "anonymous"
+      ],
+      "notes": "",
+      "body": "{\"refresh_token\"}",
+      "destructive": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/export-taxes",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "notes": "",
+      "query": [
+        "year"
+      ],
+      "content": "file (pdf)",
+      "trap": "tax-export-logout"
+    },
+    {
+      "method": "GET",
+      "path": "/api/meta",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "notes": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/me",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "notes": ""
+    },
+    {
+      "method": "PUT",
+      "path": "/api/me/profile",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "notes": "",
+      "body": "profile form"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/me/password",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "notes": "",
+      "body": "password form"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/me/preferences",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "notes": "",
+      "body": "preferences form"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "notes": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/announcements",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "notes": "Deliberately slow: ~1.2 s server delay.",
+      "query": [
+        "limit"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/announcements/{id}",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "notes": "",
+      "ids": "1-6"
+    },
+    {
+      "method": "GET",
+      "path": "/api/leave",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "notes": "",
+      "query": [
+        "status",
+        "type",
+        "sort",
+        "order",
+        "page"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/leave/balances",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "notes": ""
+    },
+    {
+      "method": "POST",
+      "path": "/api/leave/validate",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "notes": "",
+      "body": "leave form + step (1-3)"
+    },
+    {
+      "method": "POST",
+      "path": "/api/leave",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "notes": "",
+      "body": "leave form",
+      "status": 201
+    },
+    {
+      "method": "GET",
+      "path": "/api/leave/{id}",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "notes": "Own leave; managers: direct reports; HR: everyone. Others get 404."
+    },
+    {
+      "method": "POST",
+      "path": "/api/leave/{id}/cancel",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "notes": "",
+      "destructive": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/claims",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "notes": "",
+      "query": [
+        "status",
+        "category",
+        "sort",
+        "order",
+        "page"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/claims/categories",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "notes": ""
+    },
+    {
+      "method": "GET",
+      "path": "/api/claims/categories/{category}",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "notes": "Dependent dropdown source; unknown category -> 404."
+    },
+    {
+      "method": "POST",
+      "path": "/api/claims",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "notes": "",
+      "body": "multipart claim form",
+      "status": 201
+    },
+    {
+      "method": "GET",
+      "path": "/api/claims/{id}",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "notes": "Same visibility rules as leave."
+    },
+    {
+      "method": "GET",
+      "path": "/api/claims/{id}/receipt",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "notes": "",
+      "content": "file (pdf/png/jpg)"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/claims/{id}",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "notes": "Own pending claims only.",
+      "destructive": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/directory",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "notes": "",
+      "query": [
+        "q",
+        "department",
+        "page"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/directory/{id}",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "notes": "Active users only."
+    },
+    {
+      "method": "GET",
+      "path": "/api/calendar",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "notes": "",
+      "query": [
+        "month"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/approvals",
+      "roles": [
+        "manager",
+        "hr_admin"
+      ],
+      "notes": ""
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/approvals/{kind}/{id}",
+      "roles": [
+        "manager",
+        "hr_admin"
+      ],
+      "notes": "",
+      "kind": [
+        "leave",
+        "claim"
+      ],
+      "body": "decision form",
+      "destructive": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/users",
+      "roles": [
+        "hr_admin"
+      ],
+      "notes": "",
+      "query": [
+        "q",
+        "role",
+        "status",
+        "page"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/managers",
+      "roles": [
+        "hr_admin"
+      ],
+      "notes": ""
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/users",
+      "roles": [
+        "hr_admin"
+      ],
+      "notes": "",
+      "body": "user form",
+      "status": 201
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/users/{id}",
+      "roles": [
+        "hr_admin"
+      ],
+      "notes": ""
+    },
+    {
+      "method": "PUT",
+      "path": "/api/admin/users/{id}",
+      "roles": [
+        "hr_admin"
+      ],
+      "notes": "",
+      "body": "user form (edit)"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/users/{id}/status",
+      "roles": [
+        "hr_admin"
+      ],
+      "notes": "",
+      "body": "{\"active\": bool}",
+      "destructive": true
+    }
+  ],
+  "forms": [
+    {
+      "id": "login",
+      "page": "/login",
+      "action": "fetch POST /api/auth/login (JSON)",
+      "fields": [
+        {
+          "name": "username",
+          "type": "text",
+          "required": true
+        },
+        {
+          "name": "password",
+          "type": "password",
+          "required": true
+        },
+        {
+          "name": "remember",
+          "type": "checkbox",
+          "required": false,
+          "notes": "Ignored by the server."
+        }
+      ]
+    },
+    {
+      "id": "register",
+      "page": "/register",
+      "action": "fetch POST /api/auth/register (JSON)",
+      "auth_required": false,
+      "fields": [
+        {
+          "name": "full_name",
+          "type": "text",
+          "rules": "2-60 chars"
+        },
+        {
+          "name": "username",
+          "type": "text",
+          "rules": "^[a-z][a-z0-9._]{2,19}$ (case-folded), unique"
+        },
+        {
+          "name": "email",
+          "type": "email",
+          "rules": "valid, not already used by another account"
+        },
+        {
+          "name": "password",
+          "type": "password",
+          "rules": ">= 10 chars, letters and digits"
+        },
+        {
+          "name": "confirm_password",
+          "type": "password",
+          "rules": "matches password"
+        },
+        {
+          "name": "department",
+          "type": "select",
+          "options": [
+            "Engineering",
+            "Finance",
+            "Human Resources",
+            "Marketing",
+            "Sales",
+            "Operations"
+          ]
+        },
+        {
+          "name": "job_title",
+          "type": "text",
+          "rules": "2-60 chars"
+        },
+        {
+          "name": "manager_id",
+          "type": "select",
+          "depends_on": "department",
+          "rules": "required; the department's manager(s) or an HR admin"
+        },
+        {
+          "name": "invite_code",
+          "type": "text",
+          "rules": "one of invite_codes (case-insensitive, reusable)"
+        },
+        {
+          "name": "agree_terms",
+          "type": "checkbox",
+          "rules": "must be ticked"
+        }
+      ],
+      "notes": "Checked in the browser first. Success -> 201 with tokens (same shape as login); the app goes to /dashboard."
+    },
+    {
+      "id": "topbar-search",
+      "page": "(every page)",
+      "action": "client navigation to /directory?q=",
+      "fields": [
+        {
+          "name": "q",
+          "type": "search"
+        }
+      ]
+    },
+    {
+      "id": "leave-filters",
+      "page": "/leave",
+      "action": "updates ?status/?type in the URL -> GET /api/leave",
+      "fields": [
+        "status",
+        "type"
+      ]
+    },
+    {
+      "id": "leave-wizard",
+      "page": "/leave/apply",
+      "action": "POST /api/leave/validate per step, then POST /api/leave",
+      "fields": [
+        {
+          "name": "leave_type",
+          "type": "radio",
+          "step": 1,
+          "options": [
+            "Annual",
+            "Medical",
+            "Compassionate",
+            "Unpaid"
+          ]
+        },
+        {
+          "name": "start_date",
+          "type": "date",
+          "step": 2,
+          "rules": "today <= start <= today+365"
+        },
+        {
+          "name": "end_date",
+          "type": "date",
+          "step": 2,
+          "rules": "end >= start; 1-30 working days; within yearly balance (Annual 18, Medical 14, Compassionate 3); no overlap with own pending/approved leave"
+        },
+        {
+          "name": "reason",
+          "type": "textarea",
+          "step": 3,
+          "rules": "5-500 chars"
+        }
+      ]
+    },
+    {
+      "id": "leave-cancel",
+      "page": "/leave/{id}",
+      "action": "POST /api/leave/{id}/cancel after a confirm modal",
+      "fields": [],
+      "destructive": true
+    },
+    {
+      "id": "claim-filters",
+      "page": "/claims",
+      "action": "updates the URL -> GET /api/claims",
+      "fields": [
+        "status",
+        "category"
+      ]
+    },
+    {
+      "id": "claim-new",
+      "page": "/claims/new",
+      "action": "POST /api/claims (multipart via fetch)",
+      "fields": [
+        {
+          "name": "category",
+          "type": "select",
+          "options": [
+            "Travel",
+            "Meals",
+            "Medical",
+            "Training",
+            "Equipment"
+          ]
+        },
+        {
+          "name": "subcategory",
+          "type": "select",
+          "depends_on": "category",
+          "options": {
+            "Travel": [
+              "Taxi / ride-hailing",
+              "Flight",
+              "Hotel",
+              "Mileage"
+            ],
+            "Meals": [
+              "Client entertainment",
+              "Overtime meal"
+            ],
+            "Medical": [
+              "GP visit",
+              "Dental",
+              "Specialist"
+            ],
+            "Training": [
+              "Course fee",
+              "Books",
+              "Exam fee"
+            ],
+            "Equipment": [
+              "Hardware",
+              "Software",
+              "Office supplies"
+            ]
+          }
+        },
+        {
+          "name": "amount",
+          "type": "number",
+          "rules": "0.01-5000.00, max 2 decimals"
+        },
+        {
+          "name": "claim_date",
+          "type": "date",
+          "rules": "today-90 <= date <= today"
+        },
+        {
+          "name": "description",
+          "type": "textarea",
+          "rules": "5-300 chars"
+        },
+        {
+          "name": "receipt",
+          "type": "file",
+          "rules": ".pdf/.png/.jpg/.jpeg, <= 5 MB, required when amount > 25"
+        }
+      ]
+    },
+    {
+      "id": "claim-delete",
+      "page": "/claims/{id}",
+      "action": "DELETE /api/claims/{id} after a confirm modal",
+      "fields": [],
+      "destructive": true
+    },
+    {
+      "id": "directory-search",
+      "page": "/directory",
+      "action": "debounced; updates ?q in the URL -> GET /api/directory",
+      "fields": [
+        "q",
+        "department"
+      ]
+    },
+    {
+      "id": "profile-details",
+      "page": "/profile",
+      "action": "PUT /api/me/profile",
+      "fields": [
+        {
+          "name": "phone",
+          "type": "tel",
+          "rules": "^\\+?[0-9 ]{8,16}$"
+        },
+        {
+          "name": "location",
+          "type": "text",
+          "rules": "<= 60 chars (datalist suggestions)"
+        },
+        {
+          "name": "bio",
+          "type": "textarea",
+          "rules": "<= 300 chars"
+        }
+      ]
+    },
+    {
+      "id": "profile-password",
+      "page": "/profile/security",
+      "action": "PUT /api/me/password",
+      "fields": [
+        {
+          "name": "current_password",
+          "type": "password"
+        },
+        {
+          "name": "new_password",
+          "type": "password",
+          "rules": ">= 10 chars, letters and digits, differs from current"
+        },
+        {
+          "name": "confirm_password",
+          "type": "password",
+          "rules": "matches new_password"
+        }
+      ],
+      "destructive": true
+    },
+    {
+      "id": "profile-preferences",
+      "page": "/profile/preferences",
+      "action": "PUT /api/me/preferences",
+      "fields": [
+        {
+          "name": "pref_email_notifications",
+          "type": "checkbox"
+        },
+        {
+          "name": "pref_weekly_digest",
+          "type": "checkbox"
+        },
+        {
+          "name": "pref_language",
+          "type": "select",
+          "options": [
+            "en",
+            "zh",
+            "ms",
+            "ta"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "approval-decision",
+      "page": "/admin/approvals",
+      "action": "POST /api/admin/approvals/{leave|claim}/{id}",
+      "fields": [
+        {
+          "name": "action",
+          "type": "submit/button",
+          "options": [
+            "approve",
+            "reject"
+          ]
+        },
+        {
+          "name": "comment",
+          "type": "text/textarea",
+          "rules": "required (3-300 chars) when rejecting"
+        }
+      ],
+      "roles": [
+        "manager",
+        "hr_admin"
+      ],
+      "destructive": true,
+      "notes": "Reject opens a modal that asks for the comment."
+    },
+    {
+      "id": "user-filters",
+      "page": "/admin/users",
+      "action": "updates the URL -> GET /api/admin/users",
+      "fields": [
+        "q",
+        "role",
+        "status"
+      ],
+      "roles": [
+        "hr_admin"
+      ]
+    },
+    {
+      "id": "user-create",
+      "page": "/admin/users/new",
+      "action": "POST /api/admin/users",
+      "fields": [
+        {
+          "name": "username",
+          "type": "text",
+          "create_only": true,
+          "rules": "^[a-z][a-z0-9._]{2,19}$, unique"
+        },
+        {
+          "name": "temp_password",
+          "type": "password",
+          "create_only": true,
+          "rules": ">= 10 chars, letters and digits"
+        },
+        {
+          "name": "full_name",
+          "type": "text",
+          "rules": "2-60 chars"
+        },
+        {
+          "name": "email",
+          "type": "email"
+        },
+        {
+          "name": "department",
+          "type": "select",
+          "options": [
+            "Engineering",
+            "Finance",
+            "Human Resources",
+            "Marketing",
+            "Sales",
+            "Operations"
+          ]
+        },
+        {
+          "name": "job_title",
+          "type": "text",
+          "rules": "2-60 chars"
+        },
+        {
+          "name": "role",
+          "type": "select",
+          "options": [
+            "employee",
+            "manager",
+            "hr_admin"
+          ]
+        },
+        {
+          "name": "manager_id",
+          "type": "select",
+          "rules": "empty or an active manager/HR admin"
+        }
+      ],
+      "roles": [
+        "hr_admin"
+      ]
+    },
+    {
+      "id": "user-edit",
+      "page": "/admin/users/{id}",
+      "action": "PUT /api/admin/users/{id}",
+      "fields": [
+        {
+          "name": "full_name",
+          "type": "text",
+          "rules": "2-60 chars"
+        },
+        {
+          "name": "email",
+          "type": "email"
+        },
+        {
+          "name": "department",
+          "type": "select",
+          "options": [
+            "Engineering",
+            "Finance",
+            "Human Resources",
+            "Marketing",
+            "Sales",
+            "Operations"
+          ]
+        },
+        {
+          "name": "job_title",
+          "type": "text",
+          "rules": "2-60 chars"
+        },
+        {
+          "name": "role",
+          "type": "select",
+          "options": [
+            "employee",
+            "manager",
+            "hr_admin"
+          ]
+        },
+        {
+          "name": "manager_id",
+          "type": "select",
+          "rules": "empty or an active manager/HR admin"
+        }
+      ],
+      "roles": [
+        "hr_admin"
+      ]
+    },
+    {
+      "id": "user-status",
+      "page": "/admin/users/{id}",
+      "action": "POST /api/admin/users/{id}/status after a confirm modal",
+      "fields": [
+        {
+          "name": "active",
+          "type": "json boolean"
+        }
+      ],
+      "roles": [
+        "hr_admin"
+      ],
+      "destructive": true
+    }
+  ],
+  "role_restricted": [
+    {
+      "path": "/admin/approvals",
+      "roles": [
+        "manager",
+        "hr_admin"
+      ],
+      "others_get": "client redirect to /forbidden (HTTP 200); API 403 JSON"
+    },
+    {
+      "path": "/admin/users*",
+      "roles": [
+        "hr_admin"
+      ],
+      "others_get": "client redirect to /forbidden (HTTP 200); API 403 JSON"
+    },
+    {
+      "path": "/leave/{id}, /claims/{id}",
+      "roles": "owner, owner's manager, hr_admin",
+      "others_get": "'Not found' rendered in the page; API 404"
+    }
+  ],
+  "traps": [
+    {
+      "id": "tax-export-logout",
+      "type": "session-killer",
+      "effect": "Downloading the tax statement ends the session; every request afterwards is unauthenticated.",
+      "trigger": "'Export tax statement' <button> in the hover user menu (no href) -> GET /api/export-taxes?year=2025",
+      "response": "200 application/pdf; the server revokes every access and refresh token for the user, so the next call gets 401, refresh fails, and the app goes to /login?expired=1"
+    },
+    {
+      "id": "infinite-calendar",
+      "type": "infinite-space",
+      "trigger": "Team calendar prev/next month links (/calendar?month=YYYY-MM)",
+      "effect": "Months run from 1000-01 to 9998-12 (~107,000 distinct pages), each returning 200."
+    },
+    {
+      "id": "endless-next-page",
+      "type": "infinite-space",
+      "trigger": "'Next' on every paginated list is never disabled",
+      "effect": "page=N+1 forever; pages past the end return 200 with an empty-state message (soft 404)."
+    },
+    {
+      "id": "random-ref-params",
+      "type": "unique-url-per-visit",
+      "trigger": "Announcement links carry ?ref=<random hex>; Help centre links carry ?session_ref=<random hex>",
+      "effect": "A new URL on every page render for the same content."
+    },
+    {
+      "id": "near-duplicates",
+      "type": "duplicate-content",
+      "trigger": "sort/order/status/type/category/department/q combinations on list pages; invalid ?month= falls back to the current month",
+      "effect": "Many URLs, same or overlapping content."
+    },
+    {
+      "id": "destructive-actions",
+      "type": "state-changing",
+      "trigger": "Cancel leave, delete claim, approve/reject, deactivate user, change password, sign out, create account (/register)",
+      "effect": "Following them changes data or ends the session."
+    },
+    {
+      "id": "soft-404",
+      "type": "status-code-lies",
+      "trigger": "Any unknown path, e.g. /this/does/not/exist",
+      "effect": "HTTP 200 with index.html; 'Page not found' only appears after JavaScript runs."
+    },
+    {
+      "id": "client-only-403",
+      "type": "status-code-lies",
+      "trigger": "A role opening /admin/*",
+      "effect": "HTTP 200; the app redirects to /forbidden in the browser."
+    },
+    {
+      "id": "logout-button",
+      "type": "session-killer",
+      "trigger": "'Sign out' button in the user menu",
+      "effect": "Revokes the refresh token."
+    }
+  ],
+  "dynamic_content": [
+    {
+      "where": "everywhere",
+      "how": "The HTML from the server is an empty <div id=\"root\">; everything is rendered by JavaScript."
+    },
+    {
+      "where": "code splitting",
+      "how": "Each section is a lazily-loaded chunk (/assets/<Section>-<hash>.js), fetched on first visit."
+    },
+    {
+      "where": "/dashboard",
+      "how": "Announcements from a ~1.2 s endpoint; links carry a random ?ref=."
+    },
+    {
+      "where": "/leave",
+      "how": "Rows have no links; click opens a quick-view modal with a link to /leave/{id}."
+    },
+    {
+      "where": "/claims",
+      "how": "Receipts are buttons that fetch a blob with the bearer token."
+    },
+    {
+      "where": "/claims/new",
+      "how": "Dependent dropdown from GET /api/claims/categories/{category}."
+    },
+    {
+      "where": "/leave/apply",
+      "how": "Client-side 3-step wizard; one URL for all steps."
+    },
+    {
+      "where": "/register",
+      "how": "Live username check (GET /api/auth/username-available, debounced) and 'Reports to' options from GET /api/auth/register/managers."
+    },
+    {
+      "where": "/directory",
+      "how": "Infinite scroll; live search; cards navigate by JS click only."
+    },
+    {
+      "where": "lists",
+      "how": "Pagination and sort headers are real <a href> links (React Router) that change the query string without a page load."
+    },
+    {
+      "where": "user menu",
+      "how": "CSS hover; 'Export tax statement' and 'Sign out' are buttons, not links."
+    },
+    {
+      "where": "confirm dialogs",
+      "how": "Cancel leave, delete claim and deactivate user open a modal first."
+    }
+  ],
+  "static_assets": [
+    "/index.html",
+    "/assets/index-<hash>.js",
+    "/assets/index-<hash>.css",
+    "/assets/{Dashboard,Leave,Claims,People,Profile,Admin,Misc,Register}-<hash>.js"
+  ],
+  "external_resources": [
+    "fonts.googleapis.com / fonts.gstatic.com (Inter)",
+    "cdn.jsdelivr.net (Bootstrap 5.3.3 CSS, Bootstrap Icons 1.11.3)"
+  ],
+  "error_behaviour": {
+    "unknown_url": "200 + client-side 'Page not found'",
+    "api_unknown": "404 JSON",
+    "forbidden": "client redirect to /forbidden; API 403"
+  }
+}

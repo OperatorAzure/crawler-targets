@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Terms & Privacy{% endblock %}
+{% macro body() %}
+<div class="gw-page-head"><div><h1>Terms & Privacy notice</h1><p>Last updated 1 January 2026</p></div></div>
+<div class="gw-card">
+  {% for id, heading, text in [
+    ("use", "Using GoWork", "GoWork is provided to employees of GoWork Pte Ltd for managing leave, expense claims and colleague information. Use it only for work purposes and keep your password private."),
+    ("accounts", "Your account", "Accounts need a valid employee ID / invite code from HR. New self-registered accounts are created with the Employee role; HR can change roles and deactivate accounts at any time."),
+    ("data", "What we store", "Your profile details, leave requests, expense claims and uploaded receipts. Directory profiles (name, title, department, contact details) are visible to all employees."),
+    ("retention", "How long we keep it", "Records are kept for as long as you are employed and for seven years afterwards, as required by law."),
+    ("contact", "Questions", "Contact HR at hr@gowork.example for any questions about your data."),
+  ] %}
+  <div class="gw-card-body border-bottom" id="{{ id }}">
+    <h2 class="h6 fw-semibold">{{ heading }}</h2>
+    <p class="mb-0 text-muted">{{ text }}</p>
+  </div>
+  {% endfor %}
+</div>
+{% endmacro %}
+{% block content %}{{ body() }}{% endblock %}
+{% block public %}{{ body() }}<p class="mt-3"><a href="/register">← Back to create account</a> · <a href="/login">Sign in</a></p>{% endblock %}

@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Apply for leave{% endblock %}
+{% block content %}
+<div class="gw-breadcrumb"><a href="/leave">Leave</a> / Apply</div>
+<div class="gw-page-head"><div><h1>Apply for leave</h1><p id="step-label">Step 1 of 3</p></div></div>
+
+<ol class="gw-steps" id="steps">
+  <li class="current"><span>1</span> Leave type</li>
+  <li><span>2</span> Dates</li>
+  <li><span>3</span> Review & submit</li>
+</ol>
+
+{# One form, three panels: only the current panel is visible. Each step is checked by POST /api/leave/validate. #}
+<form class="gw-card" id="wizard" novalidate style="max-width: 760px">
+  <div class="gw-card-body">
+    <section data-step="1">
+      <h2 class="h6 fw-semibold mb-3">What kind of leave do you need?</h2>
+      <div class="row g-3">
+        {% for t in LEAVE_TYPES %}
+        <div class="col-sm-6">
+          <label class="gw-choice">
+            <input class="form-check-input" type="radio" name="leave_type" value="{{ t }}">
+            <span class="fw-semibold">{{ t }}</span>
+            <div class="small text-muted mt-1">{% if t in balances %}{{ balances[t].remaining }} of {{ balances[t].entitlement }} days left this year{% else %}No yearly limit · unpaid{% endif %}</div>
+          </label>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+    <section data-step="2" hidden>
+      <h2 class="h6 fw-semibold mb-3">When will you be away? <span class="gw-chip" id="chosen-type"></span></h2>
+      <div class="row g-3">
+        <div class="col-sm-6"><label class="form-label" for="start_date">First day</label><input class="form-control" type="date" id="start_date" name="start_date" min="{{ today }}"></div>
+        <div class="col-sm-6"><label class="form-label" for="end_date">Last day</label><input class="form-control" type="date" id="end_date" name="end_date" min="{{ today }}"></div>
+      </div>
+      <p class="small text-muted mt-3 mb-0" id="days-hint"><i class="bi bi-info-circle"></i> Weekends aren't counted. A single request can cover up to 30 working days.</p>
+    </section>
+    <section data-step="3" hidden>
+      <h2 class="h6 fw-semibold mb-3">Review your request</h2>
+      <dl class="gw-dl mb-4" id="summary"></dl>
+      <label class="form-label" for="reason">Reason</label>
+      <textarea class="form-control" id="reason" name="reason" rows="4" maxlength="500" placeholder="e.g. Family holiday to Penang"></textarea>
+      <div class="form-text"><span id="reason-count">0</span>/500</div>
+    </section>
+  </div>
+  <div class="gw-modal-foot">
+    <button type="button" class="btn btn-light me-auto" id="back" hidden><i class="bi bi-arrow-left"></i> Back</button>
+    <a class="btn btn-link text-muted" href="/leave">Cancel</a>
+    <button type="submit" class="btn btn-primary" id="next">Continue <i class="bi bi-arrow-right"></i></button>
+  </div>
+</form>
+{% endblock %}
+{% block scripts %}<script src="/static/js/leave_apply.js"></script>{% endblock %}

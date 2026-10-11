@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% import "macros.html" as m with context %}
+{% block title %}New claim{% endblock %}
+{% block content %}
+<div class="gw-breadcrumb"><a href="/claims">Claims</a> / New</div>
+<div class="gw-page-head"><div><h1>New expense claim</h1><p>Receipts are required for claims above $25.</p></div></div>
+
+<form class="gw-card" method="post" action="/claims/new" enctype="multipart/form-data" style="max-width: 760px">
+  {{ m.csrf() }}
+  <div class="gw-card-body">
+    <div class="row g-3">
+      <div class="col-sm-6">
+        <label class="form-label" for="category">Category</label>
+        <div class="input-group">
+          <select class="form-select{{ m.invalid(errors, 'category') }}" id="category" name="category" required>
+            <option value="">Choose…</option>
+            {% for c in CLAIM_CATEGORIES %}<option {{ 'selected' if form.get('category') == c }}>{{ c }}</option>{% endfor %}
+          </select>
+          {# No JavaScript: the server fills in the sub-categories when this button is pressed #}
+          <button class="btn btn-outline-secondary" name="action" value="refresh" formnovalidate title="Load sub-categories"><i class="bi bi-arrow-repeat"></i></button>
+        </div>
+        {{ m.field_error(errors, 'category') }}
+      </div>
+      <div class="col-sm-6">
+        <label class="form-label" for="subcategory">Sub-category</label>
+        <select class="form-select{{ m.invalid(errors, 'subcategory') }}" id="subcategory" name="subcategory" {{ 'disabled' if not subcategories }} required>
+          {% if subcategories %}
+          <option value="">Choose…</option>
+          {% for s in subcategories %}<option {{ 'selected' if form.get('subcategory') == s }}>{{ s }}</option>{% endfor %}
+          {% else %}<option value="">Pick a category, then press ⟳</option>{% endif %}
+        </select>
+        {{ m.field_error(errors, 'subcategory') }}
+      </div>
+      <div class="col-sm-6">
+        <label class="form-label" for="amount">Amount (SGD)</label>
+        <div class="input-group"><span class="input-group-text">$</span>
+          <input class="form-control{{ m.invalid(errors, 'amount') }}" id="amount" name="amount" type="number" step="0.01" min="0.01" max="5000" value="{{ form.get('amount', '') }}" required>
+        </div>
+        {{ m.field_error(errors, 'amount') }}
+      </div>
+      <div class="col-sm-6">
+        <label class="form-label" for="claim_date">Expense date</label>
+        <input class="form-control{{ m.invalid(errors, 'claim_date') }}" id="claim_date" name="claim_date" type="date" max="{{ today }}" value="{{ form.get('claim_date', '') }}" required>
+        {{ m.field_error(errors, 'claim_date') }}
+      </div>
+      <div class="col-12">
+        <label class="form-label" for="description">Description</label>
+        <textarea class="form-control{{ m.invalid(errors, 'description') }}" id="description" name="description" rows="3" minlength="5" maxlength="300" required placeholder="e.g. Taxi to client office at Changi Business Park">{{ form.get('description', '') }}</textarea>
+        {{ m.field_error(errors, 'description') }}
+      </div>
+      <div class="col-12">
+        <label class="form-label" for="receipt">Receipt</label>
+        <input class="form-control{{ m.invalid(errors, 'receipt') }}" id="receipt" name="receipt" type="file" accept=".pdf,.png,.jpg,.jpeg">
+        <div class="form-text">PDF, PNG or JPG up to 5 MB.</div>
+        {{ m.field_error(errors, 'receipt') }}
+      </div>
+    </div>
+  </div>
+  <div class="gw-modal-foot">
+    <a class="btn btn-link text-muted" href="/claims">Cancel</a>
+    <button class="btn btn-primary" name="action" value="submit">Submit claim</button>
+  </div>
+</form>
+{% endblock %}

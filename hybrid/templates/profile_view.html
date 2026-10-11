@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% import "macros.html" as m with context %}
+{% block title %}{{ p.full_name }}{% endblock %}
+{% block content %}
+<div class="gw-breadcrumb"><a href="/directory">Directory</a> / {{ p.full_name }}</div>
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="gw-card gw-card-body text-center">
+      {{ m.avatar(p, 'lg') }}
+      <h1 class="h4 fw-bold mt-3 mb-0">{{ p.full_name }}</h1>
+      <div class="text-muted">{{ p.job_title }}</div>
+      <div class="mt-2"><span class="gw-chip">{{ p.department }}</span> <span class="gw-chip">{{ p.role_label }}</span></div>
+      {% if p.bio %}<p class="mt-3 mb-0 small">{{ p.bio }}</p>{% endif %}
+      <div class="d-flex gap-2 justify-content-center mt-3">
+        <a class="btn btn-sm btn-outline-primary" href="mailto:{{ p.email }}"><i class="bi bi-envelope"></i> Email</a>
+        {% if p.id == user.id %}<a class="btn btn-sm btn-primary" href="/profile"><i class="bi bi-pencil"></i> Edit profile</a>{% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-8">
+    <div class="gw-card mb-3">
+      <div class="gw-card-head"><h2>Contact & work</h2></div>
+      <div class="gw-card-body">
+        <dl class="gw-dl">
+          <dt>Email</dt><dd>{{ p.email }}</dd>
+          <dt>Phone</dt><dd>{{ p.phone or '—' }}</dd>
+          <dt>Location</dt><dd>{{ p.location or '—' }}</dd>
+          <dt>Joined</dt><dd>{{ p.joined_on|fdate }}</dd>
+          <dt>Reports to</dt><dd>{% if p.manager %}<a href="/directory/{{ p.manager.id }}">{{ p.manager.full_name }}</a> · {{ p.manager.job_title }}{% else %}—{% endif %}</dd>
+        </dl>
+      </div>
+    </div>
+    {% if p.reports %}
+    <div class="gw-card">
+      <div class="gw-card-head"><h2>Direct reports ({{ p.reports|length }})</h2></div>
+      {% for r in p.reports %}
+      <div class="gw-list-item"><a class="fw-semibold" href="/directory/{{ r.id }}">{{ r.full_name }}</a><span class="small text-muted ms-auto">{{ r.job_title }}</span></div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

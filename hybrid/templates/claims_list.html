@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Claims{% endblock %}
+{% block content %}
+<div class="gw-page-head">
+  <div><h1>Claims</h1><p id="claims-summary">Loading your claims…</p></div>
+  <a class="btn btn-primary" href="/claims/new"><i class="bi bi-plus-lg"></i> New claim</a>
+</div>
+<div class="gw-card">
+  <div class="gw-filters">
+    <select class="form-select form-select-sm" id="f-status" aria-label="Status">
+      <option value="">All statuses</option>
+      {% for s in CLAIM_STATUSES %}<option>{{ s }}</option>{% endfor %}
+    </select>
+    <select class="form-select form-select-sm" id="f-category" aria-label="Category">
+      <option value="">All categories</option>
+      {% for c in CLAIM_CATEGORIES %}<option>{{ c }}</option>{% endfor %}
+    </select>
+  </div>
+  <div id="claims-table"></div>
+</div>
+{% endblock %}
+{% block scripts %}<script src="/static/js/claims.js"></script>{% endblock %}

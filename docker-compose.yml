@@ -1,0 +1,29 @@
+# GoWork crawler targets: the same HR portal built three ways.
+# Every service rebuilds its database from the same seed data on start.
+x-session: &session
+  SESSION_IDLE_MINUTES: "30"
+  # Dates ("today", leave/claim limits, seed data) follow Singapore time, not the container's UTC
+  TZ: Asia/Singapore
+
+services:
+  non-spa:
+    build: { context: ., dockerfile: non-spa/Dockerfile }
+    ports: ["8001:8001"]
+    environment: *session
+
+  hybrid:
+    build: { context: ., dockerfile: hybrid/Dockerfile }
+    ports: ["8002:8002"]
+    environment: *session
+
+  spa-backend:
+    build: { context: ., dockerfile: pure-spa/backend/Dockerfile }
+    ports: ["8004:8004"]
+    environment:
+      <<: *session
+      ACCESS_TOKEN_MINUTES: "10"
+
+  spa-frontend:
+    build: { context: ., dockerfile: pure-spa/frontend/Dockerfile }
+    ports: ["8003:80"]
+    depends_on: ["spa-backend"]

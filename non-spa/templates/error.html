@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}{{ code }}{% endblock %}
+{% macro body() %}
+<div class="gw-card gw-card-body text-center py-5">
+  <div class="display-5 fw-bold text-brand">{{ code }}</div>
+  <h1 class="h4 mt-2">{{ {400: "Something went wrong", 403: "Access denied", 404: "Page not found", 413: "Upload too large", 422: "Couldn't save that"}.get(code, "Error") }}</h1>
+  <p class="text-muted">{{ message }}</p>
+  <a class="btn btn-primary" href="{{ '/dashboard' if user else '/login' }}">{{ 'Back to dashboard' if user else 'Sign in' }}</a>
+</div>
+{% endmacro %}
+{% block content %}{{ body() }}{% endblock %}
+{% block public %}{{ body() }}{% endblock %}

@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+{% set annual = data.balances[0] %}{% set medical = data.balances[1] %}
+<div class="gw-page-head">
+  <div>
+    <h1>Welcome back, {{ user.full_name.split()[0] }} 👋</h1>
+    <p>Here's what's happening with your work today.</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a class="btn btn-outline-primary" href="/claims/new"><i class="bi bi-plus-lg"></i> New claim</a>
+    <a class="btn btn-primary" href="/leave/apply"><i class="bi bi-calendar-plus"></i> Apply for leave</a>
+  </div>
+</div>
+
+{% if data.approvals_waiting %}
+<div class="alert alert-warning d-flex align-items-center gap-2">
+  <i class="bi bi-hourglass-split"></i>
+  <span><strong>{{ data.approvals_waiting }}</strong> request(s) from your team are waiting for your approval.</span>
+  <a class="ms-auto btn btn-sm btn-warning" href="/admin/approvals">Review now</a>
+</div>
+{% endif %}
+
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-xl-3"><div class="gw-card gw-stat">
+    <div class="gw-stat-icon"><i class="bi bi-sun"></i></div>
+    <div><div class="gw-stat-value">{{ annual.remaining }}<small class="fs-6 text-muted"> / {{ annual.entitlement }}</small></div><div class="gw-stat-label">Annual leave left</div></div>
+  </div></div>
+  <div class="col-sm-6 col-xl-3"><div class="gw-card gw-stat">
+    <div class="gw-stat-icon rose"><i class="bi bi-heart-pulse"></i></div>
+    <div><div class="gw-stat-value">{{ medical.remaining }}<small class="fs-6 text-muted"> / {{ medical.entitlement }}</small></div><div class="gw-stat-label">Medical leave left</div></div>
+  </div></div>
+  <div class="col-sm-6 col-xl-3"><div class="gw-card gw-stat">
+    <div class="gw-stat-icon amber"><i class="bi bi-hourglass-split"></i></div>
+    <div><div class="gw-stat-value">{{ data.pending_leaves }}</div><div class="gw-stat-label">Leave requests pending</div></div>
+  </div></div>
+  <div class="col-sm-6 col-xl-3"><div class="gw-card gw-stat">
+    <div class="gw-stat-icon violet"><i class="bi bi-receipt"></i></div>
+    <div><div class="gw-stat-value">{{ data.pending_claims_amount }}</div><div class="gw-stat-label">{{ data.pending_claims }} claim(s) pending</div></div>
+  </div></div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-8">
+    <div class="gw-card mb-3">
+      <div class="gw-card-head"><h2>Recent leave requests</h2><a class="small" href="/leave">View all</a></div>
+      <div id="recent-leaves"></div>
+    </div>
+    <div class="gw-card">
+      <div class="gw-card-head"><h2>Recent claims</h2><a class="small" href="/claims">View all</a></div>
+      <div id="recent-claims"></div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="gw-card mb-3" id="announcements">
+      <div class="gw-card-head"><h2>Announcements</h2><span class="small text-muted" id="ann-status">Loading…</span></div>
+      <div id="announcement-list"></div>
+    </div>
+    <div class="gw-card mb-3">
+      <div class="gw-card-head"><h2>Out of office today</h2><a class="small" href="/calendar">Calendar</a></div>
+      <div id="out-today"></div>
+    </div>
+    <div class="gw-card gw-card-body" id="next-leave"></div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}<script src="/static/js/dashboard.js"></script>{% endblock %}

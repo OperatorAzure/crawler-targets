@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{% endblock %} · GoWork</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/fonts/bootstrap-icons.woff2?dd67030699838ea613ee6dbda90effa6" as="font" type="font/woff2" crossorigin>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <link href="/static/css/gowork.css" rel="stylesheet">
+</head>
+<body>
+{% macro nav(href, icon, label, prefix=None) %}
+<a class="gw-nav-link {{ 'active' if request.url.path.startswith(prefix or href) }}" href="{{ href }}"><i class="bi bi-{{ icon }}"></i> {{ label }}</a>
+{% endmacro %}
+{% if user %}
+<div class="gw-shell">
+  <aside class="gw-sidebar">
+    <a class="gw-brand" href="/dashboard"><span class="gw-logo">G</span> GoWork</a>
+    <nav class="gw-nav">
+      <div class="gw-nav-label">Workspace</div>
+      {{ nav('/dashboard', 'grid-1x2', 'Dashboard') }}
+      {{ nav('/leave', 'calendar2-week', 'Leave') }}
+      {{ nav('/claims', 'receipt', 'Claims') }}
+      {{ nav('/directory', 'people', 'Directory') }}
+      {{ nav('/calendar', 'calendar3', 'Team calendar') }}
+      {{ nav('/profile', 'person-circle', 'My profile') }}
+      {% if user.role in ('manager', 'hr_admin') %}
+      <div class="gw-nav-label">Manage</div>
+      {{ nav('/admin/approvals', 'check2-square', 'Approvals') }}
+      {% if user.role == 'hr_admin' %}{{ nav('/admin/users', 'person-gear', 'Users') }}{% endif %}
+      {% endif %}
+    </nav>
+    <div class="gw-sidebar-foot"><a href="/help?session_ref={{ random_ref() }}"><i class="bi bi-life-preserver"></i> Help centre</a></div>
+  </aside>
+
+  <div class="gw-main">
+    <header class="gw-topbar">
+      <form class="gw-search" action="/directory" method="get" role="search">
+        <i class="bi bi-search"></i>
+        <input name="q" type="search" placeholder="Search people, teams, roles…" aria-label="Search people">
+      </form>
+      <div class="gw-topbar-right">
+        <a class="gw-icon-btn" href="/help" title="Help"><i class="bi bi-question-lg"></i></a>
+        <a class="gw-icon-btn" href="/dashboard#announcements" title="Announcements"><i class="bi bi-bell"></i><span class="gw-dot"></span></a>
+        <div class="gw-menu">
+          <button class="gw-menu-trigger" type="button" aria-haspopup="true">
+            <span class="gw-avatar" style="--c: {{ user.avatar_color }}">{{ user.initials }}</span>
+            <span class="gw-user-name">{{ user.full_name }}</span>
+            <i class="bi bi-chevron-down small text-muted"></i>
+          </button>
+          <div class="gw-menu-panel">
+            <div class="gw-menu-head"><div class="fw-semibold">{{ user.full_name }}</div><div class="small text-muted">{{ user.role_label }} · {{ user.department }}</div></div>
+            <a href="/profile"><i class="bi bi-person"></i> My profile</a>
+            <a href="/profile/preferences"><i class="bi bi-sliders"></i> Preferences</a>
+            <button type="button" data-action="export-taxes"><i class="bi bi-file-earmark-arrow-down"></i> Export tax statement</button>
+            <a href="/help"><i class="bi bi-life-preserver"></i> Help centre</a>
+            <hr class="my-1">
+            <a href="/logout" class="danger"><i class="bi bi-box-arrow-right"></i> Sign out</a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="gw-content">
+      {% block content %}{% endblock %}
+    </main>
+
+    <footer class="gw-footer">
+      <span>© 2026 GoWork Pte Ltd</span>
+      <a href="/help?session_ref={{ random_ref() }}">Help centre</a>
+      <a href="/help#privacy">Privacy</a>
+      <span>v4.2.1 · Hybrid</span>
+    </footer>
+  </div>
+</div>
+{% else %}
+<div class="container py-5" style="max-width: 760px">
+  <a class="d-inline-flex align-items-center gap-2 fw-bold fs-5 text-dark text-decoration-none mb-4" href="/login"><span class="gw-logo">G</span> GoWork</a>
+  {% block public %}{% endblock %}
+</div>
+{% endif %}
+<script src="/static/js/common.js"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

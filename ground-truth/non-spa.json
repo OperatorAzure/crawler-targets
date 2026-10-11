@@ -1,0 +1,1071 @@
+{
+  "site": "non-spa",
+  "base_url": "http://localhost:8001",
+  "architecture": "Flask, every page rendered on the server, plain HTML forms, no JavaScript.",
+  "auth": {
+    "login": {
+      "url": "/login",
+      "method": "POST",
+      "content_type": "application/x-www-form-urlencoded",
+      "fields": [
+        "csrf_token (hidden)",
+        "next (hidden)",
+        "username",
+        "password",
+        "remember"
+      ],
+      "success": "302 to ?next (same-site paths only) or /dashboard",
+      "failure": "401 + form again"
+    },
+    "session": {
+      "type": "signed cookie",
+      "cookie": "gowork_session",
+      "http_only": true,
+      "same_site": "Lax",
+      "idle_timeout_minutes": 30,
+      "on_expiry": "302 /login?expired=1"
+    },
+    "unauthenticated": "302 /login?next=<original path>",
+    "csrf": "Hidden csrf_token field in every POST form (tied to the session). Missing/wrong -> 400.",
+    "logout": "GET /logout (link in the user menu) -> 302 /login"
+  },
+  "accounts": [
+    {
+      "username": "alice",
+      "password": "GoWork@2026",
+      "role": "employee",
+      "user_id": 3,
+      "notes": "Software Engineer, reports to bob. Has 2 pages of leave and claims."
+    },
+    {
+      "username": "bob",
+      "password": "GoWork@2026",
+      "role": "manager",
+      "user_id": 2,
+      "notes": "Engineering Manager with 12 active direct reports."
+    },
+    {
+      "username": "carol",
+      "password": "GoWork@2026",
+      "role": "hr_admin",
+      "user_id": 1,
+      "notes": "HR Director. Sees every pending request and the user admin."
+    },
+    {
+      "username": "li.tan",
+      "password": "GoWork@2026",
+      "role": "manager",
+      "user_id": 4,
+      "notes": "Finance manager."
+    },
+    {
+      "username": "shu.nair",
+      "password": "GoWork@2026",
+      "role": "employee",
+      "user_id": 15,
+      "notes": "Deactivated account - login must fail."
+    }
+  ],
+  "registration": {
+    "page": "/register (linked from the sign-in page as 'Create an account')",
+    "result": "Creates an active *employee* account and signs the new user in immediately (lands on /dashboard with a welcome message).",
+    "invite_codes": [
+      "GW-2026-0001",
+      "GW-2026-0002",
+      "GW-2026-0003",
+      "GW-2026-0004",
+      "GW-2026-0005",
+      "GW-2026-0006",
+      "GW-2026-0007",
+      "GW-2026-0008",
+      "GW-2026-0009",
+      "GW-2026-0010"
+    ],
+    "notes": "Registered accounts disappear when the containers restart. Signed-in users opening /register are sent to /dashboard."
+  },
+  "seed": {
+    "users": 40,
+    "active_users": 38,
+    "announcements": 6,
+    "notes": "All seeded users share the password GoWork@2026. Leave/claim counts vary slightly with today's date."
+  },
+  "pages": [
+    {
+      "path": "/",
+      "roles": [
+        "anonymous"
+      ],
+      "auth_required": false,
+      "query_params": [],
+      "content": "redirect",
+      "notes": "302 to /dashboard or /login"
+    },
+    {
+      "path": "/login",
+      "roles": [
+        "anonymous"
+      ],
+      "auth_required": false,
+      "query_params": [],
+      "content": "html",
+      "notes": ""
+    },
+    {
+      "path": "/register",
+      "roles": [
+        "anonymous"
+      ],
+      "auth_required": false,
+      "query_params": [],
+      "content": "html",
+      "notes": "Public sign-up; signed-in users are redirected to /dashboard."
+    },
+    {
+      "path": "/terms",
+      "roles": [
+        "anonymous"
+      ],
+      "auth_required": false,
+      "query_params": [],
+      "content": "html",
+      "notes": "",
+      "fragments": [
+        "use",
+        "accounts",
+        "data",
+        "retention",
+        "contact"
+      ]
+    },
+    {
+      "path": "/help",
+      "roles": [
+        "anonymous"
+      ],
+      "auth_required": false,
+      "query_params": [
+        "session_ref"
+      ],
+      "content": "html",
+      "notes": "",
+      "fragments": [
+        "leave",
+        "claims",
+        "password",
+        "approvals",
+        "privacy"
+      ]
+    },
+    {
+      "path": "/dashboard",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "auth_required": true,
+      "query_params": [],
+      "content": "html",
+      "notes": ""
+    },
+    {
+      "path": "/announcements/{id}",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "auth_required": true,
+      "query_params": [
+        "ref"
+      ],
+      "content": "html",
+      "notes": "",
+      "ids": "1-6"
+    },
+    {
+      "path": "/leave",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "auth_required": true,
+      "query_params": [
+        "status",
+        "type",
+        "sort",
+        "order",
+        "page"
+      ],
+      "content": "html",
+      "notes": ""
+    },
+    {
+      "path": "/leave/{id}",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "auth_required": true,
+      "query_params": [],
+      "content": "html",
+      "notes": "Own leave; managers: direct reports; HR: everyone. Others get 404."
+    },
+    {
+      "path": "/leave/apply",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "auth_required": true,
+      "query_params": [
+        "step",
+        "reset"
+      ],
+      "content": "html",
+      "notes": "3-step wizard; draft kept in the session. Can't skip ahead."
+    },
+    {
+      "path": "/claims",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "auth_required": true,
+      "query_params": [
+        "status",
+        "category",
+        "sort",
+        "order",
+        "page"
+      ],
+      "content": "html",
+      "notes": ""
+    },
+    {
+      "path": "/claims/new",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "auth_required": true,
+      "query_params": [
+        "category"
+      ],
+      "content": "html",
+      "notes": ""
+    },
+    {
+      "path": "/claims/{id}",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "auth_required": true,
+      "query_params": [],
+      "content": "html",
+      "notes": ""
+    },
+    {
+      "path": "/claims/{id}/receipt",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "auth_required": true,
+      "query_params": [],
+      "content": "file (pdf/png/jpg)",
+      "notes": ""
+    },
+    {
+      "path": "/directory",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "auth_required": true,
+      "query_params": [
+        "q",
+        "department",
+        "page"
+      ],
+      "content": "html",
+      "notes": ""
+    },
+    {
+      "path": "/directory/{id}",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "auth_required": true,
+      "query_params": [],
+      "content": "html",
+      "notes": "Active users only."
+    },
+    {
+      "path": "/calendar",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "auth_required": true,
+      "query_params": [
+        "month"
+      ],
+      "content": "html",
+      "notes": ""
+    },
+    {
+      "path": "/profile",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "auth_required": true,
+      "query_params": [],
+      "content": "html",
+      "notes": ""
+    },
+    {
+      "path": "/profile/details",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "auth_required": true,
+      "query_params": [],
+      "content": "html",
+      "notes": "Duplicate of /profile."
+    },
+    {
+      "path": "/profile/security",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "auth_required": true,
+      "query_params": [],
+      "content": "html",
+      "notes": ""
+    },
+    {
+      "path": "/profile/preferences",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "auth_required": true,
+      "query_params": [],
+      "content": "html",
+      "notes": ""
+    },
+    {
+      "path": "/export-taxes",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "auth_required": true,
+      "query_params": [
+        "year"
+      ],
+      "content": "file (pdf)",
+      "notes": "",
+      "trap": "tax-export-logout"
+    },
+    {
+      "path": "/logout",
+      "roles": [
+        "employee",
+        "manager",
+        "hr_admin"
+      ],
+      "auth_required": true,
+      "query_params": [],
+      "content": "redirect",
+      "notes": "",
+      "destructive": true
+    },
+    {
+      "path": "/admin/approvals",
+      "roles": [
+        "manager",
+        "hr_admin"
+      ],
+      "auth_required": true,
+      "query_params": [],
+      "content": "html",
+      "notes": ""
+    },
+    {
+      "path": "/admin/users",
+      "roles": [
+        "hr_admin"
+      ],
+      "auth_required": true,
+      "query_params": [
+        "q",
+        "role",
+        "status",
+        "page"
+      ],
+      "content": "html",
+      "notes": ""
+    },
+    {
+      "path": "/admin/users/new",
+      "roles": [
+        "hr_admin"
+      ],
+      "auth_required": true,
+      "query_params": [],
+      "content": "html",
+      "notes": ""
+    },
+    {
+      "path": "/admin/users/{id}",
+      "roles": [
+        "hr_admin"
+      ],
+      "auth_required": true,
+      "query_params": [],
+      "content": "html",
+      "notes": ""
+    }
+  ],
+  "api_endpoints": [],
+  "forms": [
+    {
+      "id": "login",
+      "page": "/login",
+      "action": "POST /login",
+      "fields": [
+        {
+          "name": "username",
+          "type": "text",
+          "required": true
+        },
+        {
+          "name": "password",
+          "type": "password",
+          "required": true
+        },
+        {
+          "name": "remember",
+          "type": "checkbox",
+          "required": false,
+          "notes": "Ignored by the server."
+        }
+      ]
+    },
+    {
+      "id": "register",
+      "page": "/register",
+      "action": "POST /register",
+      "auth_required": false,
+      "fields": [
+        {
+          "name": "full_name",
+          "type": "text",
+          "rules": "2-60 chars"
+        },
+        {
+          "name": "username",
+          "type": "text",
+          "rules": "^[a-z][a-z0-9._]{2,19}$ (case-folded), unique"
+        },
+        {
+          "name": "email",
+          "type": "email",
+          "rules": "valid, not already used by another account"
+        },
+        {
+          "name": "password",
+          "type": "password",
+          "rules": ">= 10 chars, letters and digits"
+        },
+        {
+          "name": "confirm_password",
+          "type": "password",
+          "rules": "matches password"
+        },
+        {
+          "name": "department",
+          "type": "select",
+          "options": [
+            "Engineering",
+            "Finance",
+            "Human Resources",
+            "Marketing",
+            "Sales",
+            "Operations"
+          ]
+        },
+        {
+          "name": "job_title",
+          "type": "text",
+          "rules": "2-60 chars"
+        },
+        {
+          "name": "manager_id",
+          "type": "select",
+          "depends_on": "department",
+          "rules": "required; the department's manager(s) or an HR admin"
+        },
+        {
+          "name": "invite_code",
+          "type": "text",
+          "rules": "one of invite_codes (case-insensitive, reusable)"
+        },
+        {
+          "name": "agree_terms",
+          "type": "checkbox",
+          "rules": "must be ticked"
+        },
+        {
+          "name": "action",
+          "type": "submit",
+          "options": [
+            "refresh",
+            "submit"
+          ]
+        },
+        {
+          "name": "csrf_token",
+          "type": "hidden"
+        }
+      ],
+      "notes": "No JavaScript: the 'refresh' button posts the form back so the server fills in 'Reports to'. HTML5 required/pattern attributes. Success -> 302 /dashboard, signed in."
+    },
+    {
+      "id": "topbar-search",
+      "page": "(every page)",
+      "action": "GET /directory",
+      "fields": [
+        {
+          "name": "q",
+          "type": "search"
+        }
+      ]
+    },
+    {
+      "id": "leave-filters",
+      "page": "/leave",
+      "action": "GET /leave",
+      "fields": [
+        "status",
+        "type",
+        "sort (hidden)",
+        "order (hidden)"
+      ]
+    },
+    {
+      "id": "leave-wizard",
+      "page": "/leave/apply",
+      "action": "POST /leave/apply (hidden step=1|2|3)",
+      "fields": [
+        {
+          "name": "leave_type",
+          "type": "radio",
+          "step": 1,
+          "options": [
+            "Annual",
+            "Medical",
+            "Compassionate",
+            "Unpaid"
+          ]
+        },
+        {
+          "name": "start_date",
+          "type": "date",
+          "step": 2,
+          "rules": "today <= start <= today+365"
+        },
+        {
+          "name": "end_date",
+          "type": "date",
+          "step": 2,
+          "rules": "end >= start; 1-30 working days; within yearly balance (Annual 18, Medical 14, Compassionate 3); no overlap with own pending/approved leave"
+        },
+        {
+          "name": "reason",
+          "type": "textarea",
+          "step": 3,
+          "rules": "5-500 chars"
+        }
+      ],
+      "notes": "Each step is its own POST + redirect. Fields also have HTML5 validation."
+    },
+    {
+      "id": "leave-cancel",
+      "page": "/leave/{id}",
+      "action": "POST /leave/{id}/cancel",
+      "fields": [],
+      "destructive": true
+    },
+    {
+      "id": "claim-filters",
+      "page": "/claims",
+      "action": "GET /claims",
+      "fields": [
+        "status",
+        "category",
+        "sort (hidden)",
+        "order (hidden)"
+      ]
+    },
+    {
+      "id": "claim-new",
+      "page": "/claims/new",
+      "action": "POST /claims/new",
+      "enctype": "multipart/form-data",
+      "fields": [
+        {
+          "name": "category",
+          "type": "select",
+          "options": [
+            "Travel",
+            "Meals",
+            "Medical",
+            "Training",
+            "Equipment"
+          ]
+        },
+        {
+          "name": "subcategory",
+          "type": "select",
+          "depends_on": "category",
+          "options": {
+            "Travel": [
+              "Taxi / ride-hailing",
+              "Flight",
+              "Hotel",
+              "Mileage"
+            ],
+            "Meals": [
+              "Client entertainment",
+              "Overtime meal"
+            ],
+            "Medical": [
+              "GP visit",
+              "Dental",
+              "Specialist"
+            ],
+            "Training": [
+              "Course fee",
+              "Books",
+              "Exam fee"
+            ],
+            "Equipment": [
+              "Hardware",
+              "Software",
+              "Office supplies"
+            ]
+          }
+        },
+        {
+          "name": "amount",
+          "type": "number",
+          "rules": "0.01-5000.00, max 2 decimals"
+        },
+        {
+          "name": "claim_date",
+          "type": "date",
+          "rules": "today-90 <= date <= today"
+        },
+        {
+          "name": "description",
+          "type": "textarea",
+          "rules": "5-300 chars"
+        },
+        {
+          "name": "receipt",
+          "type": "file",
+          "rules": ".pdf/.png/.jpg/.jpeg, <= 5 MB, required when amount > 25"
+        },
+        {
+          "name": "action",
+          "type": "submit",
+          "options": [
+            "refresh",
+            "submit"
+          ]
+        }
+      ],
+      "notes": "No JavaScript: the 'refresh' button posts the form back so the server fills in the sub-categories."
+    },
+    {
+      "id": "claim-delete",
+      "page": "/claims/{id}",
+      "action": "POST /claims/{id}/delete",
+      "fields": [],
+      "destructive": true
+    },
+    {
+      "id": "directory-search",
+      "page": "/directory",
+      "action": "GET /directory",
+      "fields": [
+        "q",
+        "department"
+      ]
+    },
+    {
+      "id": "profile-details",
+      "page": "/profile",
+      "action": "POST /profile",
+      "fields": [
+        {
+          "name": "phone",
+          "type": "tel",
+          "rules": "^\\+?[0-9 ]{8,16}$"
+        },
+        {
+          "name": "location",
+          "type": "text",
+          "rules": "<= 60 chars (datalist suggestions)"
+        },
+        {
+          "name": "bio",
+          "type": "textarea",
+          "rules": "<= 300 chars"
+        }
+      ]
+    },
+    {
+      "id": "profile-password",
+      "page": "/profile/security",
+      "action": "POST /profile/security",
+      "fields": [
+        {
+          "name": "current_password",
+          "type": "password"
+        },
+        {
+          "name": "new_password",
+          "type": "password",
+          "rules": ">= 10 chars, letters and digits, differs from current"
+        },
+        {
+          "name": "confirm_password",
+          "type": "password",
+          "rules": "matches new_password"
+        }
+      ],
+      "destructive": true
+    },
+    {
+      "id": "profile-preferences",
+      "page": "/profile/preferences",
+      "action": "POST /profile/preferences",
+      "fields": [
+        {
+          "name": "pref_email_notifications",
+          "type": "checkbox"
+        },
+        {
+          "name": "pref_weekly_digest",
+          "type": "checkbox"
+        },
+        {
+          "name": "pref_language",
+          "type": "select",
+          "options": [
+            "en",
+            "zh",
+            "ms",
+            "ta"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "approval-decision",
+      "page": "/admin/approvals",
+      "action": "POST /admin/approvals/{leave|claim}/{id}",
+      "fields": [
+        {
+          "name": "action",
+          "type": "submit/button",
+          "options": [
+            "approve",
+            "reject"
+          ]
+        },
+        {
+          "name": "comment",
+          "type": "text/textarea",
+          "rules": "required (3-300 chars) when rejecting"
+        }
+      ],
+      "roles": [
+        "manager",
+        "hr_admin"
+      ],
+      "destructive": true,
+      "notes": "One small form per table row."
+    },
+    {
+      "id": "user-filters",
+      "page": "/admin/users",
+      "action": "GET /admin/users",
+      "fields": [
+        "q",
+        "role",
+        "status"
+      ],
+      "roles": [
+        "hr_admin"
+      ]
+    },
+    {
+      "id": "user-create",
+      "page": "/admin/users/new",
+      "action": "POST /admin/users/new",
+      "fields": [
+        {
+          "name": "username",
+          "type": "text",
+          "create_only": true,
+          "rules": "^[a-z][a-z0-9._]{2,19}$, unique"
+        },
+        {
+          "name": "temp_password",
+          "type": "password",
+          "create_only": true,
+          "rules": ">= 10 chars, letters and digits"
+        },
+        {
+          "name": "full_name",
+          "type": "text",
+          "rules": "2-60 chars"
+        },
+        {
+          "name": "email",
+          "type": "email"
+        },
+        {
+          "name": "department",
+          "type": "select",
+          "options": [
+            "Engineering",
+            "Finance",
+            "Human Resources",
+            "Marketing",
+            "Sales",
+            "Operations"
+          ]
+        },
+        {
+          "name": "job_title",
+          "type": "text",
+          "rules": "2-60 chars"
+        },
+        {
+          "name": "role",
+          "type": "select",
+          "options": [
+            "employee",
+            "manager",
+            "hr_admin"
+          ]
+        },
+        {
+          "name": "manager_id",
+          "type": "select",
+          "rules": "empty or an active manager/HR admin"
+        }
+      ],
+      "roles": [
+        "hr_admin"
+      ]
+    },
+    {
+      "id": "user-edit",
+      "page": "/admin/users/{id}",
+      "action": "POST /admin/users/{id}",
+      "fields": [
+        {
+          "name": "full_name",
+          "type": "text",
+          "rules": "2-60 chars"
+        },
+        {
+          "name": "email",
+          "type": "email"
+        },
+        {
+          "name": "department",
+          "type": "select",
+          "options": [
+            "Engineering",
+            "Finance",
+            "Human Resources",
+            "Marketing",
+            "Sales",
+            "Operations"
+          ]
+        },
+        {
+          "name": "job_title",
+          "type": "text",
+          "rules": "2-60 chars"
+        },
+        {
+          "name": "role",
+          "type": "select",
+          "options": [
+            "employee",
+            "manager",
+            "hr_admin"
+          ]
+        },
+        {
+          "name": "manager_id",
+          "type": "select",
+          "rules": "empty or an active manager/HR admin"
+        }
+      ],
+      "roles": [
+        "hr_admin"
+      ]
+    },
+    {
+      "id": "user-status",
+      "page": "/admin/users/{id}",
+      "action": "POST /admin/users/{id}/status",
+      "fields": [
+        {
+          "name": "active",
+          "type": "hidden",
+          "options": [
+            "0",
+            "1"
+          ]
+        }
+      ],
+      "roles": [
+        "hr_admin"
+      ],
+      "destructive": true
+    }
+  ],
+  "role_restricted": [
+    {
+      "path": "/admin/approvals",
+      "roles": [
+        "manager",
+        "hr_admin"
+      ],
+      "others_get": "403 page",
+      "nav_link_hidden_for_others": true
+    },
+    {
+      "path": "/admin/users*",
+      "roles": [
+        "hr_admin"
+      ],
+      "others_get": "403 page",
+      "nav_link_hidden_for_others": true
+    },
+    {
+      "path": "/leave/{id}, /claims/{id}, /claims/{id}/receipt",
+      "roles": "owner, owner's manager, hr_admin",
+      "others_get": "404 page (existence not revealed)"
+    }
+  ],
+  "traps": [
+    {
+      "id": "tax-export-logout",
+      "type": "session-killer",
+      "effect": "Downloading the tax statement ends the session; every request afterwards is unauthenticated.",
+      "trigger": "GET /export-taxes?year=2025 - link inside the CSS hover user menu",
+      "response": "200 application/pdf attachment + session cookie cleared"
+    },
+    {
+      "id": "infinite-calendar",
+      "type": "infinite-space",
+      "trigger": "Team calendar prev/next month links (/calendar?month=YYYY-MM)",
+      "effect": "Months run from 1000-01 to 9998-12 (~107,000 distinct pages), each returning 200."
+    },
+    {
+      "id": "endless-next-page",
+      "type": "infinite-space",
+      "trigger": "'Next' on every paginated list is never disabled",
+      "effect": "page=N+1 forever; pages past the end return 200 with an empty-state message (soft 404)."
+    },
+    {
+      "id": "random-ref-params",
+      "type": "unique-url-per-visit",
+      "trigger": "Announcement links carry ?ref=<random hex>; Help centre links carry ?session_ref=<random hex>",
+      "effect": "A new URL on every page render for the same content."
+    },
+    {
+      "id": "near-duplicates",
+      "type": "duplicate-content",
+      "trigger": "sort/order/status/type/category/department/q combinations on list pages; invalid ?month= falls back to the current month",
+      "effect": "Many URLs, same or overlapping content."
+    },
+    {
+      "id": "destructive-actions",
+      "type": "state-changing",
+      "trigger": "Cancel leave, delete claim, approve/reject, deactivate user, change password, sign out, create account (/register)",
+      "effect": "Following them changes data or ends the session."
+    },
+    {
+      "id": "logout-link",
+      "type": "session-killer",
+      "trigger": "GET /logout in the user menu",
+      "effect": "Ends the session."
+    },
+    {
+      "id": "profile-alias",
+      "type": "duplicate-content",
+      "trigger": "/profile and /profile/details",
+      "effect": "Same page, two URLs."
+    }
+  ],
+  "dynamic_content": [
+    {
+      "where": "user menu",
+      "how": "CSS :hover / :focus-within. The links are in the HTML source, just hidden."
+    },
+    {
+      "where": "/claims/new",
+      "how": "Sub-category list filled in by a server round-trip (the refresh button), not by JavaScript."
+    },
+    {
+      "where": "/register",
+      "how": "'Reports to' list filled in by a server round-trip (the refresh button)."
+    }
+  ],
+  "static_assets": [
+    "/static/gowork.css"
+  ],
+  "external_resources": [
+    "fonts.googleapis.com / fonts.gstatic.com (Inter)",
+    "cdn.jsdelivr.net (Bootstrap 5.3.3 CSS, Bootstrap Icons 1.11.3)"
+  ],
+  "error_behaviour": {
+    "unknown_url": "404 HTML page",
+    "forbidden": "403 HTML page",
+    "bad_csrf": "400 HTML page",
+    "upload_too_large": "413 HTML page (> 6 MB request)"
+  }
+}

@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}New claim{% endblock %}
+{% block content %}
+<div class="gw-breadcrumb"><a href="/claims">Claims</a> / New</div>
+<div class="gw-page-head"><div><h1>New expense claim</h1><p>Receipts are required for claims above $25.</p></div></div>
+
+<form class="gw-card" id="claim-form" novalidate style="max-width: 760px">
+  <div class="gw-card-body">
+    <div class="row g-3">
+      <div class="col-sm-6">
+        <label class="form-label" for="category">Category</label>
+        <select class="form-select" id="category" name="category">
+          <option value="">Choose…</option>
+          {% for c in CLAIM_CATEGORIES %}<option>{{ c }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-sm-6">
+        <label class="form-label" for="subcategory">Sub-category</label>
+        {# Options are loaded from /api/claims/categories/<category> when the category changes #}
+        <select class="form-select" id="subcategory" name="subcategory" disabled><option value="">Choose a category first</option></select>
+      </div>
+      <div class="col-sm-6">
+        <label class="form-label" for="amount">Amount (SGD)</label>
+        <div class="input-group"><span class="input-group-text">$</span><input class="form-control" id="amount" name="amount" inputmode="decimal" placeholder="0.00"></div>
+      </div>
+      <div class="col-sm-6">
+        <label class="form-label" for="claim_date">Expense date</label>
+        <input class="form-control" id="claim_date" name="claim_date" type="date" max="{{ today }}">
+      </div>
+      <div class="col-12">
+        <label class="form-label" for="description">Description</label>
+        <textarea class="form-control" id="description" name="description" rows="3" maxlength="300" placeholder="e.g. Taxi to client office at Changi Business Park"></textarea>
+      </div>
+      <div class="col-12">
+        <label class="form-label" for="receipt">Receipt <span class="text-muted small" id="receipt-hint">(optional up to $25)</span></label>
+        <input class="form-control" id="receipt" name="receipt" type="file" accept=".pdf,.png,.jpg,.jpeg">
+        <div class="form-text">PDF, PNG or JPG up to 5 MB.</div>
+      </div>
+    </div>
+  </div>
+  <div class="gw-modal-foot">
+    <a class="btn btn-link text-muted" href="/claims">Cancel</a>
+    <button class="btn btn-primary" type="submit">Submit claim</button>
+  </div>
+</form>
+{% endblock %}
+{% block scripts %}<script src="/static/js/claim_new.js"></script>{% endblock %}

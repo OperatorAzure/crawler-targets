@@ -1,0 +1,13 @@
+# Runs only the pure-SPA target. Build context is the repo root for the shared core.
+services:
+  spa-backend:
+    build: { context: .., dockerfile: pure-spa/backend/Dockerfile }
+    ports: ["8004:8004"]
+    environment:
+      SESSION_IDLE_MINUTES: "30"
+      ACCESS_TOKEN_MINUTES: "10"
+      TZ: Asia/Singapore
+  spa-frontend:
+    build: { context: .., dockerfile: pure-spa/frontend/Dockerfile }
+    ports: ["8003:80"]
+    depends_on: ["spa-backend"]
