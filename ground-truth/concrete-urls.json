@@ -1,5 +1,5 @@
 {
-  "generated_for_date": "2026-10-11",
+  "generated_for_date": "2026-10-24",
   "public_urls": [
     "/login",
     "/register",
@@ -219,8 +219,7 @@
         6,
         7,
         8,
-        24,
-        106
+        24
       ],
       "claim_ids": [
         6,
@@ -309,7 +308,7 @@
         6
       ],
       "pending_approvals": {
-        "leaves": 2,
+        "leaves": 1,
         "claims": 12
       },
       "core_page_urls": [
@@ -329,7 +328,6 @@
         "/leave/7",
         "/leave/8",
         "/leave/24",
-        "/leave/106",
         "/claims/6",
         "/claims/7",
         "/claims/8",
@@ -420,7 +418,7 @@
         90,
         93,
         94,
-        106,
+        98,
         121,
         122
       ],
@@ -614,7 +612,7 @@
         "/leave/90",
         "/leave/93",
         "/leave/94",
-        "/leave/106",
+        "/leave/98",
         "/leave/121",
         "/leave/122",
         "/claims/1",

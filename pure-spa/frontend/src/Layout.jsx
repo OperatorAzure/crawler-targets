@@ -19,7 +19,7 @@ export default function Layout() {
 
   async function exportTaxes() {
     try {
-      // Crawler trap: the server revokes every token for this user once the file is generated
+      // Crawler trap: the server revokes every token for this user once the file is generated (unless EXPORT_TRAP=0)
       saveBlob(await api('/api/export-taxes?year=2025', { blob: true }), 'IR8A_2025.pdf');
       toast('Tax statement downloaded.');
     } catch (err) {

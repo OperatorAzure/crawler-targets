@@ -27,14 +27,15 @@ from starlette.exceptions import HTTPException as StarletteHTTPException  # noqa
 from gowork_core import db, services as svc  # noqa: E402
 from gowork_core.api import build_public_router, build_router  # noqa: E402
 from gowork_core.constants import (  # noqa: E402
-    CLAIM_CATEGORIES, CLAIM_STATUSES, DEPARTMENTS, LEAVE_STATUSES, LEAVE_TYPES, ROLES, SESSION_IDLE_MINUTES,
+    CLAIM_CATEGORIES, CLAIM_STATUSES, DEPARTMENTS, EXPORT_TRAP, LEAVE_STATUSES, LEAVE_TYPES, ROLES,
+    SESSION_IDLE_MINUTES, session_too_old,
 )
 
 app = FastAPI(title="GoWork Hybrid", docs_url=None, redoc_url=None, openapi_url=None)
 templates = Jinja2Templates(directory=str(HERE / "templates"))
 db.init_db()
 
-SESSIONS = {}  # session id -> {"user_id", "csrf", "last_seen"}
+SESSIONS = {}  # session id -> {"user_id", "csrf", "last_seen", "auth_at"}
 COOKIE = "gw_sid"
 UNSAFE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 
@@ -58,10 +59,11 @@ def _load_session(request: Request):
     session = SESSIONS.get(sid) if sid else None
     if session is None:
         return None
-    if time.time() - session["last_seen"] > SESSION_IDLE_MINUTES * 60:
+    now = time.time()
+    if now - session["last_seen"] > SESSION_IDLE_MINUTES * 60 or session_too_old(session["auth_at"], now):
         SESSIONS.pop(sid, None)
         return None
-    session["last_seen"] = time.time()
+    session["last_seen"] = now
     request.state.sid = sid
     request.state.session = session
     return session
@@ -184,7 +186,8 @@ def api_register(data: dict = Body(...), conn=Depends(db.get_conn)):
 
 def _start_session(response, user_id):
     sid = secrets.token_urlsafe(32)
-    SESSIONS[sid] = {"user_id": user_id, "csrf": secrets.token_urlsafe(32), "last_seen": time.time()}
+    now = time.time()
+    SESSIONS[sid] = {"user_id": user_id, "csrf": secrets.token_urlsafe(32), "last_seen": now, "auth_at": now}
     response.set_cookie(COOKIE, sid, httponly=True, samesite="lax")
     return response
 
@@ -199,12 +202,14 @@ def api_logout(request: Request, user=Depends(api_user)):
 
 @app.get("/api/export-taxes")
 def export_taxes(request: Request, year: str = "", user=Depends(api_user), conn=Depends(db.get_conn)):
-    # Crawler trap: this background download destroys the session, so the next API call gets a 401.
+    # Crawler trap: this background download destroys the session, so the next API call gets a 401
+    # (unless EXPORT_TRAP=0).
     filename, pdf = svc.tax_statement(conn, user, year)
-    SESSIONS.pop(request.state.sid, None)
     response = Response(pdf, media_type="application/pdf",
                         headers={"Content-Disposition": f'attachment; filename="{filename}"'})
-    response.delete_cookie(COOKIE)
+    if EXPORT_TRAP:
+        SESSIONS.pop(request.state.sid, None)
+        response.delete_cookie(COOKIE)
     return response
 
 

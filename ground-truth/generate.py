@@ -129,7 +129,7 @@ SHARED_API = [
     api("GET", "/api/meta"),
     api("GET", "/api/me"),
     api("PUT", "/api/me/profile", body="profile form"),
-    api("PUT", "/api/me/password", body="password form"),
+    api("PUT", "/api/me/password", body="password form", destructive=True),
     api("PUT", "/api/me/preferences", body="preferences form"),
     api("GET", "/api/dashboard"),
     api("GET", "/api/announcements", query=["limit"], notes="Deliberately slow: ~1.2 s server delay."),
@@ -162,7 +162,8 @@ SHARED_API = [
 ]
 
 PUBLIC_REGISTER_API = [
-    api("POST", "/api/auth/register", roles=["anonymous"], body="registration form (JSON)", status=201),
+    api("POST", "/api/auth/register", roles=["anonymous"], body="registration form (JSON)", status=201,
+        destructive=True),
     api("GET", "/api/auth/username-available", roles=["anonymous"], query=["username"],
         notes="Live check used while typing; returns {username, available, message}."),
     api("GET", "/api/auth/register/managers", roles=["anonymous"], query=["department"],
@@ -170,7 +171,8 @@ PUBLIC_REGISTER_API = [
 ]
 COMMON_TRAPS = [
     {"id": "tax-export-logout", "type": "session-killer",
-     "effect": "Downloading the tax statement ends the session; every request afterwards is unauthenticated."},
+     "effect": "Downloading the tax statement ends the session; every request afterwards is unauthenticated.",
+     "toggle": "EXPORT_TRAP (default 1). With 0 the link/button and the PDF stay the same, but the session survives."},
     {"id": "infinite-calendar", "type": "infinite-space",
      "trigger": "Team calendar prev/next month links (/calendar?month=YYYY-MM)",
      "effect": "Months run from 1000-01 to 9998-12 (~107,000 distinct pages), each returning 200."},
@@ -187,6 +189,17 @@ COMMON_TRAPS = [
      "trigger": "Cancel leave, delete claim, approve/reject, deactivate user, change password, sign out, create account (/register)",
      "effect": "Following them changes data or ends the session."},
 ]
+MAX_SESSION_SECONDS = 60   # SESSION_MAX_SECONDS in docker-compose.yml
+
+
+def session_timeout(response):
+    return {"id": "session-timeout", "type": "session-killer",
+            "trigger": f"Nothing - every session is revoked {MAX_SESSION_SECONDS} s after sign-in (login or register), "
+                       "however active it is",
+            "effect": "The session dies partway through the crawl; signing in again starts a fresh "
+                      f"{MAX_SESSION_SECONDS} s. Tests whether the crawler notices and re-authenticates.",
+            "response": response,
+            "toggle": f"SESSION_MAX_SECONDS (default {MAX_SESSION_SECONDS}; 0 = off)"}
 
 
 def non_spa():
@@ -199,7 +212,8 @@ def non_spa():
                       "fields": ["csrf_token (hidden)", "next (hidden)", "username", "password", "remember"],
                       "success": "302 to ?next (same-site paths only) or /dashboard", "failure": "401 + form again"},
             "session": {"type": "signed cookie", "cookie": "gowork_session", "http_only": True, "same_site": "Lax",
-                        "idle_timeout_minutes": 30, "on_expiry": "302 /login?expired=1"},
+                        "idle_timeout_minutes": 30, "max_session_seconds": MAX_SESSION_SECONDS,
+                        "on_expiry": "302 /login?expired=1"},
             "unauthenticated": "302 /login?next=<original path>",
             "csrf": "Hidden csrf_token field in every POST form (tied to the session). Missing/wrong -> 400.",
             "logout": "GET /logout (link in the user menu) -> 302 /login",
@@ -239,7 +253,7 @@ def non_spa():
         "api_endpoints": [],
         "forms": [
             {"id": "login", "page": "/login", "action": "POST /login", "fields": F_LOGIN},
-            {"id": "register", "page": "/register", "action": "POST /register", "auth_required": False,
+            {"id": "register", "page": "/register", "action": "POST /register", "auth_required": False, "destructive": True,
              "fields": F_REGISTER + [{"name": "action", "type": "submit", "options": ["refresh", "submit"]},
                                      {"name": "csrf_token", "type": "hidden"}],
              "notes": "No JavaScript: the 'refresh' button posts the form back so the server fills in 'Reports to'. HTML5 required/pattern attributes. Success -> 302 /dashboard, signed in."},
@@ -276,6 +290,7 @@ def non_spa():
              "response": "200 application/pdf attachment + session cookie cleared"},
             *COMMON_TRAPS[1:],
             {"id": "logout-link", "type": "session-killer", "trigger": "GET /logout in the user menu", "effect": "Ends the session."},
+            session_timeout("The next request gets 302 /login?expired=1 (the same as an idle timeout)"),
             {"id": "profile-alias", "type": "duplicate-content", "trigger": "/profile and /profile/details", "effect": "Same page, two URLs."},
         ],
         "dynamic_content": [
@@ -301,7 +316,7 @@ def hybrid():
                       "success": "200 {status, next} + Set-Cookie gw_sid; the page then goes to `next`",
                       "failure": "401 {detail}"},
             "session": {"type": "server-side, in memory", "cookie": "gw_sid", "http_only": True, "same_site": "Lax",
-                        "idle_timeout_minutes": 30},
+                        "idle_timeout_minutes": 30, "max_session_seconds": MAX_SESSION_SECONDS},
             "unauthenticated": "Pages: 302 /login?next=<path>[&expired=1]. API: 401 JSON; common.js then goes to /login?expired=1&next=...",
             "csrf": "<meta name=\"csrf-token\"> on every page; POST/PUT/DELETE to /api/* must send it as X-CSRF-Token (403 otherwise). /api/auth/login is exempt.",
             "logout": "GET /logout link -> 302 /login?signed_out=1 (also POST /api/auth/logout)",
@@ -342,7 +357,7 @@ def hybrid():
         ],
         "forms": [
             {"id": "login", "page": "/login", "action": "fetch POST /api/auth/login (JSON)", "fields": F_LOGIN},
-            {"id": "register", "page": "/register", "action": "fetch POST /api/auth/register (JSON)", "auth_required": False,
+            {"id": "register", "page": "/register", "action": "fetch POST /api/auth/register (JSON)", "auth_required": False, "destructive": True,
              "fields": F_REGISTER, "notes": "Checked in the browser first. Success -> 201 + gw_sid cookie, then the page goes to /dashboard."},
             {"id": "topbar-search", "page": "(every page)", "action": "GET /directory", "fields": F_SEARCH, "transport": "html-form"},
             {"id": "leave-filters", "page": "/leave", "action": "GET /api/leave on <select> change", "fields": ["status", "type"], "transport": "fetch"},
@@ -375,6 +390,8 @@ def hybrid():
              "response": "200 application/pdf + gw_sid deleted; the next API call returns 401 and the page goes to /login?expired=1"},
             *COMMON_TRAPS[1:],
             {"id": "logout-link", "type": "session-killer", "trigger": "GET /logout in the user menu", "effect": "Ends the session."},
+            session_timeout("Pages: 302 /login?next=<path>&expired=1. API: 401, then common.js goes to /login?expired=1 "
+                            "(the same as an idle timeout)"),
         ],
         "dynamic_content": [
             {"where": "/dashboard", "how": "Recent leave/claims, out-of-office and next leave from GET /api/dashboard after the page loads."},
@@ -441,6 +458,9 @@ def pure_spa():
                       "success": "200 {access_token, refresh_token, token_type, expires_in, user}", "failure": "401 {detail}"},
             "session": {"type": "JWT bearer (HS256)", "access_token_minutes": 10,
                         "refresh_token": "30 min, single use (rotated on every refresh)",
+                        "max_session_seconds": MAX_SESSION_SECONDS,
+                        "max_session": "Both tokens carry the sign-in time ('auth' claim, kept across refreshes) and "
+                                       "stop working that many seconds after it",
                         "storage": "access token in memory; refresh token in localStorage key 'gw_refresh'",
                         "restore": "On page load the app calls POST /api/auth/refresh"},
             "unauthenticated": "Client redirect to /login?next=<path>. API: 401 JSON; the client tries one refresh, then goes to /login?expired=1.",
@@ -462,7 +482,7 @@ def pure_spa():
         ],
         "forms": [
             {"id": "login", "page": "/login", "action": "fetch POST /api/auth/login (JSON)", "fields": F_LOGIN},
-            {"id": "register", "page": "/register", "action": "fetch POST /api/auth/register (JSON)", "auth_required": False,
+            {"id": "register", "page": "/register", "action": "fetch POST /api/auth/register (JSON)", "auth_required": False, "destructive": True,
              "fields": F_REGISTER, "notes": "Checked in the browser first. Success -> 201 with tokens (same shape as login); the app goes to /dashboard."},
             {"id": "topbar-search", "page": "(every page)", "action": "client navigation to /directory?q=", "fields": F_SEARCH},
             {"id": "leave-filters", "page": "/leave", "action": "updates ?status/?type in the URL -> GET /api/leave", "fields": ["status", "type"]},
@@ -497,6 +517,8 @@ def pure_spa():
             {"id": "client-only-403", "type": "status-code-lies", "trigger": "A role opening /admin/*",
              "effect": "HTTP 200; the app redirects to /forbidden in the browser."},
             {"id": "logout-button", "type": "session-killer", "trigger": "'Sign out' button in the user menu", "effect": "Revokes the refresh token."},
+            session_timeout("API calls get 401; POST /api/auth/refresh also gets 401 (the refresh token dies at the "
+                            "same moment), so the app goes to /login?expired=1"),
         ],
         "dynamic_content": [
             {"where": "everywhere", "how": "The HTML from the server is an empty <div id=\"root\">; everything is rendered by JavaScript."},

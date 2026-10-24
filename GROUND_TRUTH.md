@@ -22,7 +22,10 @@ python ground-truth/generate.py --concrete   # rebuild the answer key (no Docker
 - Seed dates are relative to today **in Singapore time**; the containers run with `TZ=Asia/Singapore`. Regenerate `concrete-urls.json` on the day you run the crawler, and restart the containers that same day. Run the generator on a machine set to Singapore time, or use `TZ=Asia/Singapore` there too.
 - Settings (in [docker-compose.yml](docker-compose.yml)):
   - `SESSION_IDLE_MINUTES` (default 30): idle session timeout on all sites.
-  - `ACCESS_TOKEN_MINUTES` (default 10): lifetime of the SPA's access token.
+  - `SESSION_MAX_SECONDS` (default 60): every session is revoked this many seconds after sign-in, however active it is. `0` turns it off. See the `session-timeout` trap.
+  - `EXPORT_TRAP` (default 1): with `0`, the tax export still downloads but no longer ends the session.
+  - `ACCESS_TOKEN_MINUTES` (default 10): lifetime of the SPA's access token, cut short by `SESSION_MAX_SECONDS`.
+  - Change a setting, then run `docker compose up -d` to recreate the containers with it.
 
 ## Test accounts
 
@@ -104,14 +107,16 @@ The **API** (Hybrid and SPA) has about 35 endpoints. The full list, with methods
 | Credential | Signed cookie `gowork_session` | Server-side session, cookie `gw_sid` | Bearer JWT (10 min) + single-use refresh token (30 min) in `localStorage['gw_refresh']` |
 | CSRF | Hidden `csrf_token` in every form (else 400) | `X-CSRF-Token` header from `<meta name="csrf-token">` (else 403) | None (no cookies) |
 | Not signed in | 302 `/login?next=…` | Pages: 302 `/login?next=…`. API: 401 | Redirect in the browser to `/login?next=…`. API: 401 |
-| Session expired | `/login?expired=1` | `/login?expired=1` | Tries one refresh, then `/login?expired=1` |
+| Session expired (idle or 60 s cap) | `/login?expired=1` | `/login?expired=1` | Tries one refresh, then `/login?expired=1` |
+| 60 s cap stored in | `auth_at` inside the signed cookie (replaying an old cookie doesn't help) | `auth_at` in the server-side session | `auth` claim in both tokens, kept across refreshes |
 | Sign out | `GET /logout` link | `GET /logout` link | "Sign out" **button** |
 
 ## Crawler traps
 
 | Trap | Where | What happens |
 |---|---|---|
-| **Tax export logs you out** | User menu (hover) → "Export tax statement". Non-SPA: a link to `/export-taxes`. Hybrid and SPA: a **button** that calls `GET /api/export-taxes` in the background. | Downloads a PDF and **ends the session**. The SPA revokes every token for that user. |
+| **Tax export logs you out** | User menu (hover) → "Export tax statement". Non-SPA: a link to `/export-taxes`. Hybrid and SPA: a **button** that calls `GET /api/export-taxes` in the background. | Downloads a PDF and **ends the session**. The SPA revokes every token for that user. With `EXPORT_TRAP=0` the PDF still downloads but the session survives. |
+| **Session timeout** | Every site, no trigger needed | Each session is revoked **60 s after sign-in** (`SESSION_MAX_SECONDS`), however active it is. The crawler sees the same thing as an idle timeout. On the SPA, the refresh token dies at the same moment. Signing in again starts a fresh 60 s. Tests whether the crawler re-authenticates partway through the crawl. |
 | **Infinite calendar** | `/calendar?month=` prev/next | Runs from 1000-01 to 9998-12 (about 107,000 pages), all 200. |
 | **Endless "Next"** | Every paginated list | "Next" is never disabled. Pages past the end return 200 with an empty state (soft 404). |
 | **Random URL tokens** | Announcement links `?ref=<random>`; Help links `?session_ref=<random>` | A new URL on every page render. |
@@ -156,6 +161,15 @@ This is how the old "source-to-sink" check works now. The text is **always escap
 
 ## Scoring with the answer key
 
+- `python ground-truth/score.py crawls/<site>-<user>.xml` scores a Burp "Save items" export (one per site and account): coverage, session timeline, re-authentication, API endpoints and traps hit. `--json FILE` writes the full report.
+- **Re-authentication report:** every lost session is listed with a likely cause, then whether and how quickly the crawler got back in, and how many requests it made while signed out. The sites answer every cause the same way, so the scorer infers it:
+  - **tax export:** the loss came right after a 200 from the export.
+  - **60 s timeout:** the loss came at least 60 s after the last sign-in.
+  - **idle timeout:** more than 30 minutes passed with no request.
+  - **logout:** the crawler signed out.
+  - **unknown:** anything else, e.g. refresh-token reuse or deactivation.
+
+  Burp records whole seconds, so the timing is accurate to about a second. If a tax export is followed by a successful signed-in request, the export is reported as harmless (`EXPORT_TRAP=0`). If the containers ran with a different cap, pass `--max-session SECONDS` (`0` = off).
 - Check page and endpoint coverage against `pages` and `api_endpoints` in each site's JSON. Match `{id}` against any number.
 - `concrete-urls.json` lists, for alice, bob and carol:
   - every leave, claim, profile and user ID their UI links to;
@@ -167,13 +181,14 @@ This is how the old "source-to-sink" check works now. The text is **always escap
   - stays inside the target hosts (the CDN font and CSS hosts are third-party);
   - stops on the calendar, "Next" and `?ref=` traps;
   - doesn't trigger the tax export or other destructive actions, or recovers by signing in again;
+  - notices when the 60 s session timeout signs it out, signs in again and carries on where it left off;
   - reaches JavaScript-only content on Hybrid and SPA.
 
 ## How this maps to your original requirements
 
 | Earlier requirement | Now |
 |---|---|
-| Req 2 – Poison pill | `tax-export-logout` trap (link on Non-SPA; background request on Hybrid and SPA) |
+| Req 2 – Poison pill | `tax-export-logout` trap (link on Non-SPA; background request on Hybrid and SPA; can be switched off with `EXPORT_TRAP=0`), plus the `session-timeout` trap that ends every session 60 s after sign-in |
 | Req 3 – Privilege mapping | Three roles, checked on the server; admin pages return 403 (SPA: hidden in the browser + API 403) |
 | Req 4 – Source-to-sink reflection | User text appears on detail, approval and profile pages, escaped |
 

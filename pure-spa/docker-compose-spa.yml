@@ -5,6 +5,8 @@ services:
     ports: ["8004:8004"]
     environment:
       SESSION_IDLE_MINUTES: "30"
+      SESSION_MAX_SECONDS: "60"   # revoke every session 60 s after sign-in (0 = off)
+      EXPORT_TRAP: "1"            # 0 = the tax export no longer ends the session
       ACCESS_TOKEN_MINUTES: "10"
       TZ: Asia/Singapore
   spa-frontend:

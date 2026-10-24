@@ -34,3 +34,12 @@ DEFAULT_PASSWORD = "GoWork@2026"
 INVITE_CODES = [f"GW-2026-{n:04d}" for n in range(1, 11)]
 
 SESSION_IDLE_MINUTES = int(os.environ.get("SESSION_IDLE_MINUTES", "30"))
+# Crawler trap: every session is revoked this many seconds after sign-in, however active it is (0 = off)
+SESSION_MAX_SECONDS = int(os.environ.get("SESSION_MAX_SECONDS", "60"))
+# Crawler trap: downloading the tax statement ends the session (0 = the download is harmless)
+EXPORT_TRAP = os.environ.get("EXPORT_TRAP", "1") != "0"
+
+
+def session_too_old(auth_at, now):
+    """True once a session signed in at `auth_at` has outlived SESSION_MAX_SECONDS."""
+    return SESSION_MAX_SECONDS > 0 and now - auth_at >= SESSION_MAX_SECONDS

@@ -2,6 +2,10 @@
 # Every service rebuilds its database from the same seed data on start.
 x-session: &session
   SESSION_IDLE_MINUTES: "30"
+  # Crawler trap: every session is revoked this many seconds after sign-in, however active it is (0 = off)
+  SESSION_MAX_SECONDS: "60"
+  # Crawler trap: 1 = downloading the tax statement ends the session; 0 = the download is harmless
+  EXPORT_TRAP: "0"
   # Dates ("today", leave/claim limits, seed data) follow Singapore time, not the container's UTC
   TZ: Asia/Singapore
 

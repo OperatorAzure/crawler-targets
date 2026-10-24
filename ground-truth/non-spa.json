@@ -23,6 +23,7 @@
       "http_only": true,
       "same_site": "Lax",
       "idle_timeout_minutes": 30,
+      "max_session_seconds": 60,
       "on_expiry": "302 /login?expired=1"
     },
     "unauthenticated": "302 /login?next=<original path>",
@@ -479,6 +480,7 @@
       "page": "/register",
       "action": "POST /register",
       "auth_required": false,
+      "destructive": true,
       "fields": [
         {
           "name": "full_name",
@@ -995,6 +997,7 @@
       "id": "tax-export-logout",
       "type": "session-killer",
       "effect": "Downloading the tax statement ends the session; every request afterwards is unauthenticated.",
+      "toggle": "EXPORT_TRAP (default 1). With 0 the link/button and the PDF stay the same, but the session survives.",
       "trigger": "GET /export-taxes?year=2025 - link inside the CSS hover user menu",
       "response": "200 application/pdf attachment + session cookie cleared"
     },
@@ -1033,6 +1036,14 @@
       "type": "session-killer",
       "trigger": "GET /logout in the user menu",
       "effect": "Ends the session."
+    },
+    {
+      "id": "session-timeout",
+      "type": "session-killer",
+      "trigger": "Nothing - every session is revoked 60 s after sign-in (login or register), however active it is",
+      "effect": "The session dies partway through the crawl; signing in again starts a fresh 60 s. Tests whether the crawler notices and re-authenticates.",
+      "response": "The next request gets 302 /login?expired=1 (the same as an idle timeout)",
+      "toggle": "SESSION_MAX_SECONDS (default 60; 0 = off)"
     },
     {
       "id": "profile-alias",

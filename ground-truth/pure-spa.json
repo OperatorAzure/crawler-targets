@@ -19,6 +19,8 @@
       "type": "JWT bearer (HS256)",
       "access_token_minutes": 10,
       "refresh_token": "30 min, single use (rotated on every refresh)",
+      "max_session_seconds": 60,
+      "max_session": "Both tokens carry the sign-in time ('auth' claim, kept across refreshes) and stop working that many seconds after it",
       "storage": "access token in memory; refresh token in localStorage key 'gw_refresh'",
       "restore": "On page load the app calls POST /api/auth/refresh"
     },
@@ -446,7 +448,8 @@
       ],
       "notes": "",
       "body": "registration form (JSON)",
-      "status": 201
+      "status": 201,
+      "destructive": true
     },
     {
       "method": "GET",
@@ -544,7 +547,8 @@
         "hr_admin"
       ],
       "notes": "",
-      "body": "password form"
+      "body": "password form",
+      "destructive": true
     },
     {
       "method": "PUT",
@@ -894,6 +898,7 @@
       "page": "/register",
       "action": "fetch POST /api/auth/register (JSON)",
       "auth_required": false,
+      "destructive": true,
       "fields": [
         {
           "name": "full_name",
@@ -1377,6 +1382,7 @@
       "id": "tax-export-logout",
       "type": "session-killer",
       "effect": "Downloading the tax statement ends the session; every request afterwards is unauthenticated.",
+      "toggle": "EXPORT_TRAP (default 1). With 0 the link/button and the PDF stay the same, but the session survives.",
       "trigger": "'Export tax statement' <button> in the hover user menu (no href) -> GET /api/export-taxes?year=2025",
       "response": "200 application/pdf; the server revokes every access and refresh token for the user, so the next call gets 401, refresh fails, and the app goes to /login?expired=1"
     },
@@ -1427,6 +1433,14 @@
       "type": "session-killer",
       "trigger": "'Sign out' button in the user menu",
       "effect": "Revokes the refresh token."
+    },
+    {
+      "id": "session-timeout",
+      "type": "session-killer",
+      "trigger": "Nothing - every session is revoked 60 s after sign-in (login or register), however active it is",
+      "effect": "The session dies partway through the crawl; signing in again starts a fresh 60 s. Tests whether the crawler notices and re-authenticates.",
+      "response": "API calls get 401; POST /api/auth/refresh also gets 401 (the refresh token dies at the same moment), so the app goes to /login?expired=1",
+      "toggle": "SESSION_MAX_SECONDS (default 60; 0 = off)"
     }
   ],
   "dynamic_content": [

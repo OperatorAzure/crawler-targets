@@ -21,7 +21,8 @@
       "cookie": "gw_sid",
       "http_only": true,
       "same_site": "Lax",
-      "idle_timeout_minutes": 30
+      "idle_timeout_minutes": 30,
+      "max_session_seconds": 60
     },
     "unauthenticated": "Pages: 302 /login?next=<path>[&expired=1]. API: 401 JSON; common.js then goes to /login?expired=1&next=...",
     "csrf": "<meta name=\"csrf-token\"> on every page; POST/PUT/DELETE to /api/* must send it as X-CSRF-Token (403 otherwise). /api/auth/login is exempt.",
@@ -404,7 +405,8 @@
       ],
       "notes": "",
       "body": "registration form (JSON)",
-      "status": 201
+      "status": 201,
+      "destructive": true
     },
     {
       "method": "GET",
@@ -494,7 +496,8 @@
         "hr_admin"
       ],
       "notes": "",
-      "body": "password form"
+      "body": "password form",
+      "destructive": true
     },
     {
       "method": "PUT",
@@ -844,6 +847,7 @@
       "page": "/register",
       "action": "fetch POST /api/auth/register (JSON)",
       "auth_required": false,
+      "destructive": true,
       "fields": [
         {
           "name": "full_name",
@@ -1333,6 +1337,7 @@
       "id": "tax-export-logout",
       "type": "session-killer",
       "effect": "Downloading the tax statement ends the session; every request afterwards is unauthenticated.",
+      "toggle": "EXPORT_TRAP (default 1). With 0 the link/button and the PDF stay the same, but the session survives.",
       "trigger": "<button data-action=\"export-taxes\"> in the hover user menu (no href) -> background fetch GET /api/export-taxes?year=2025",
       "response": "200 application/pdf + gw_sid deleted; the next API call returns 401 and the page goes to /login?expired=1"
     },
@@ -1371,6 +1376,14 @@
       "type": "session-killer",
       "trigger": "GET /logout in the user menu",
       "effect": "Ends the session."
+    },
+    {
+      "id": "session-timeout",
+      "type": "session-killer",
+      "trigger": "Nothing - every session is revoked 60 s after sign-in (login or register), however active it is",
+      "effect": "The session dies partway through the crawl; signing in again starts a fresh 60 s. Tests whether the crawler notices and re-authenticates.",
+      "response": "Pages: 302 /login?next=<path>&expired=1. API: 401, then common.js goes to /login?expired=1 (the same as an idle timeout)",
+      "toggle": "SESSION_MAX_SECONDS (default 60; 0 = off)"
     }
   ],
   "dynamic_content": [

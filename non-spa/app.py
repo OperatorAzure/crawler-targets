@@ -2,7 +2,8 @@
 
 Every page is rendered on the server and every action is a plain HTML form,
 so the site works with JavaScript disabled. Sessions are signed Flask cookies
-with an idle timeout; every POST form carries a CSRF token.
+with an idle timeout and a hard cap after sign-in; every POST form carries a
+CSRF token.
 """
 
 import os
@@ -22,7 +23,7 @@ from flask import Flask, Response, abort, flash, g, redirect, render_template, r
 from gowork_core import db, services as svc  # noqa: E402
 from gowork_core.constants import (  # noqa: E402
     CLAIM_CATEGORIES, CLAIM_STATUSES, DEPARTMENTS, ENTITLEMENTS, LANGUAGES, LEAVE_STATUSES, LEAVE_TYPES, ROLES,
-    SESSION_IDLE_MINUTES,
+    EXPORT_TRAP, SESSION_IDLE_MINUTES, session_too_old,
 )
 
 app = Flask(__name__, static_folder=str(SHARED / "static"), static_url_path="/static")
@@ -46,7 +47,10 @@ def load_session():
     g.user = None
     user_id = session.get("user_id")
     if user_id:
-        if time.time() - session.get("last_seen", 0) > SESSION_IDLE_MINUTES * 60:
+        now = time.time()
+        idle = now - session.get("last_seen", 0) > SESSION_IDLE_MINUTES * 60
+        # The cap is checked on the signed cookie itself, so replaying an old cookie doesn't revive it
+        if idle or session_too_old(session.get("auth_at", 0), now):
             session.clear()
             if request.endpoint not in PUBLIC_ENDPOINTS:
                 return redirect(url_for("login", expired=1))
@@ -55,7 +59,7 @@ def load_session():
             if g.user is None:  # deactivated while signed in
                 session.clear()
             else:
-                session["last_seen"] = time.time()
+                session["last_seen"] = now
     session.setdefault("csrf", secrets.token_urlsafe(32))
     if request.method == "POST":
         if not secrets.compare_digest(request.form.get("csrf_token", ""), session["csrf"]):
@@ -169,7 +173,8 @@ def login():
         user = svc.authenticate(g.conn, request.form.get("username"), request.form.get("password"))
         if user:
             session.clear()
-            session.update(user_id=user["id"], last_seen=time.time(), csrf=secrets.token_urlsafe(32))
+            session.update(user_id=user["id"], last_seen=time.time(), auth_at=time.time(),
+                           csrf=secrets.token_urlsafe(32))
             return redirect(_safe_next(request.form.get("next")))
         error = "Incorrect username or password."
     return render_template(
@@ -187,7 +192,8 @@ def register():
         try:
             user_id = svc.register(g.conn, request.form)
             session.clear()
-            session.update(user_id=user_id, last_seen=time.time(), csrf=secrets.token_urlsafe(32))
+            session.update(user_id=user_id, last_seen=time.time(), auth_at=time.time(),
+                           csrf=secrets.token_urlsafe(32))
             flash(f"Welcome to GoWork, {request.form['full_name'].split()[0]}! Your account is ready.", "success")
             return redirect(url_for("dashboard"))
         except svc.Invalid as e:
@@ -226,9 +232,10 @@ def dashboard():
 @app.route("/export-taxes")
 @login_required
 def export_taxes():
-    # Crawler trap: downloading the tax statement ends the session.
+    # Crawler trap: downloading the tax statement ends the session (unless EXPORT_TRAP=0).
     filename, pdf = svc.tax_statement(g.conn, g.user, request.args.get("year"))
-    session.clear()
+    if EXPORT_TRAP:
+        session.clear()
     return Response(pdf, mimetype="application/pdf",
                     headers={"Content-Disposition": f'attachment; filename="{filename}"'})
 

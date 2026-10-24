@@ -173,7 +173,7 @@
     if (!btn) return;
     e.preventDefault();
     try {
-      // Crawler trap: this background request ends the session on the server
+      // Crawler trap: this background request ends the session on the server (unless EXPORT_TRAP=0)
       const blob = await api('/api/export-taxes?year=2025');
       download(blob, 'IR8A_2025.pdf');
       toast('Tax statement downloaded.');
